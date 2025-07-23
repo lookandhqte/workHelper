@@ -1,30 +1,25 @@
-package amocrmrepo
+package main
 
 import (
-	"fmt"
-	"sync"
+	"amocrm_golang/database"
+	"amocrm_golang/routes"
+
+	"github.com/gin-gonic/gin"
 )
 
-type MemoryStorage struct {
-	mu sync.RWMutex
-	//posts    map[string]*model.Post
-	//comments map[string][]*model.Comment
-}
-
-// NewMemoryStorage создает новое in-memory хранилище.
-func NewMemoryStorage() *MemoryStorage {
-	return &MemoryStorage{
-		//posts:    make(map[string]*model.Post),
-		//comments: make(map[string][]*model.Comment),
-	}
-}
-
-type Accounts struct {
-}
-
-type Account_Integration struct {
-}
-
 func main() {
-	fmt.Println("git")
+	// Инициализация хранилища и сервисов
+	storage := database.NewMemoryStorage()
+	accountService := database.NewAccountService(storage)
+	integrationService := database.NewIntegrationService(storage)
+
+	// Создаем gin-роутер
+	r := gin.Default()
+
+	// Настройка роутов
+	routes.SetupAccountRoutes(r, accountService, storage)
+	routes.SetupIntegrationRoutes(r, integrationService)
+
+	// Запускаем сервер на порту 2020
+	r.Run(":2020")
 }
