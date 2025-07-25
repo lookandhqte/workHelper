@@ -11,6 +11,7 @@ type AccountRepository interface {
 	UpdateAccount(account *entity.Account) error
 	DeleteAccount(id int) error
 	GetAccount(id int) (*entity.Account, error)
+	GetAccountIntegrations(accountID int) (*entity.Integration, error)
 }
 
 //Определение методов для интеграций
@@ -19,7 +20,6 @@ type IntegrationRepository interface {
 	GetIntegrations() ([]*entity.Integration, error)
 	UpdateIntegration(integration *entity.Integration) error
 	DeleteIntegration(accountID int) error
-	GetAccountIntegrations(accountID int) (*entity.Integration, error)
 }
 
 //Определение общего репоитория для аккаунтов и интеграций
