@@ -1,25 +1,25 @@
-package repository
+package repo
 
 import (
-	"amocrm_golang/model"
+	"amocrm_golang/internal/entity"
 )
 
 //Определение методов для аккаунтов
 type AccountRepository interface {
-	AddAccount(account *model.Account) error
-	GetAccounts() ([]*model.Account, error)
-	UpdateAccount(account *model.Account) error
+	AddAccount(account *entity.Account) error
+	GetAccounts() ([]*entity.Account, error)
+	UpdateAccount(account *entity.Account) error
 	DeleteAccount(id int) error
-	GetAccount(id int) (*model.Account, error)
+	GetAccount(id int) (*entity.Account, error)
 }
 
 //Определение методов для интеграций
 type IntegrationRepository interface {
-	AddIntegration(integration *model.Integration) error
-	GetIntegrations() ([]*model.Integration, error)
-	UpdateIntegration(integration *model.Integration) error
+	AddIntegration(integration *entity.Integration) error
+	GetIntegrations() ([]*entity.Integration, error)
+	UpdateIntegration(integration *entity.Integration) error
 	DeleteIntegration(accountID int) error
-	GetAccountIntegrations(accountID int) (*model.Integration, error)
+	GetAccountIntegrations(accountID int) (*entity.Integration, error)
 }
 
 //Определение общего репоитория для аккаунтов и интеграций
