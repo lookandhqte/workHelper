@@ -1,17 +1,18 @@
 package database
 
 import (
+	"amocrm_golang/cache"
 	"amocrm_golang/model"
 	"amocrm_golang/repository"
 	"fmt"
 	"sync"
-
-	"github.com/google/uuid"
+	"time"
 )
 
 //Структура сервиса аккаунтов
 type AccountService struct {
-	repo repository.AccountRepository
+	repo  repository.AccountRepository
+	cache *cache.Cache
 }
 
 //Структура сервиса интеграций
@@ -21,7 +22,10 @@ type IntegrationService struct {
 
 //Создание нового сервиса аккаунтов
 func NewAccountService(repo repository.AccountRepository) *AccountService {
-	return &AccountService{repo: repo}
+	return &AccountService{
+		repo:  repo,
+		cache: cache.NewCache(),
+	}
 }
 
 //Создание нового сервиса интеграций
@@ -29,7 +33,7 @@ func NewIntegrationService(repo repository.IntegrationRepository) *IntegrationSe
 	return &IntegrationService{repo: repo}
 }
 
-//бляблябля блюблюблю
+//Создание аккаунта
 func (s *AccountService) CreateAccount(account *model.Account) error {
 	return s.repo.AddAccount(account)
 }
@@ -38,7 +42,7 @@ func (s *AccountService) GetAccountList() ([]*model.Account, error) {
 	return s.repo.GetAccounts()
 }
 
-func (s *AccountService) GetAccountByID(id uuid.UUID) (*model.Account, error) {
+func (s *AccountService) GetAccountByID(id int) (*model.Account, error) {
 	return s.repo.GetAccount(id)
 }
 
@@ -46,7 +50,7 @@ func (s *AccountService) UpdateAccount(account *model.Account) error {
 	return s.repo.UpdateAccount(account)
 }
 
-func (s *AccountService) DeleteAccount(id uuid.UUID) error {
+func (s *AccountService) DeleteAccount(id int) error {
 	return s.repo.DeleteAccount(id)
 }
 
@@ -58,7 +62,7 @@ func (s *IntegrationService) GetIntegrationList() ([]*model.Integration, error) 
 	return s.repo.GetIntegrations()
 }
 
-func (s *IntegrationService) GetAccountIntegrations(accountID uuid.UUID) (*model.Integration, error) {
+func (s *IntegrationService) GetAccountIntegrations(accountID int) (*model.Integration, error) {
 	return s.repo.GetAccountIntegrations(accountID)
 }
 
@@ -66,30 +70,52 @@ func (s *IntegrationService) UpdateIntegration(integration *model.Integration) e
 	return s.repo.UpdateIntegration(integration)
 }
 
-func (s *IntegrationService) DeleteIntegration(id uuid.UUID) error {
+func (s *IntegrationService) DeleteIntegration(id int) error {
 	return s.repo.DeleteIntegration(id)
 }
 
 type MemoryStorage struct {
-	mu           sync.RWMutex
-	accounts     map[uuid.UUID]*model.Account
-	integrations map[uuid.UUID]*model.Integration
+	mu            sync.RWMutex
+	accounts      map[int]*model.Account
+	integrations  map[int]*model.Integration
+	lastAccountID int
+	cache         *cache.Cache
 }
 
 // NewMemoryStorage создает новое in-memory хранилище.
 func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
-		accounts:     make(map[uuid.UUID]*model.Account),
-		integrations: make(map[uuid.UUID]*model.Integration),
+		accounts:      make(map[int]*model.Account),
+		integrations:  make(map[int]*model.Integration),
+		lastAccountID: 0,
+		cache:         cache.NewCache(),
 	}
+}
+
+func (m *MemoryStorage) GetAccountWithCache(id int) (*model.Account, error) {
+	if cached, ok := m.cache.Get(id); ok {
+		return cached.(*model.Account), nil
+	}
+
+	account, err := m.GetAccount(id)
+	if err != nil {
+		return nil, err
+	}
+
+	m.cache.Set(id, account, time.Hour) // Кэшируем на 1 час
+	return account, nil
 }
 
 func (m *MemoryStorage) UpdateAccount(account *model.Account) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if account.ID == uuid.Nil {
+	if account.ID == 0 {
 		return fmt.Errorf("account ID is required")
+	}
+
+	if account.ID < 0 {
+		return fmt.Errorf("invalid ID")
 	}
 
 	if _, exists := m.accounts[account.ID]; !exists {
@@ -99,11 +125,14 @@ func (m *MemoryStorage) UpdateAccount(account *model.Account) error {
 	m.accounts[account.ID] = account
 	return nil
 }
-func (m *MemoryStorage) DeleteAccount(id uuid.UUID) error {
+func (m *MemoryStorage) DeleteAccount(id int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if id == uuid.Nil {
+	if id == 0 {
 		return fmt.Errorf("ID is required")
+	}
+	if id < 0 {
+		return fmt.Errorf("invalid ID")
 	}
 
 	if _, exists := m.accounts[id]; !exists {
@@ -114,11 +143,15 @@ func (m *MemoryStorage) DeleteAccount(id uuid.UUID) error {
 	return nil
 }
 
-func (m *MemoryStorage) DeleteIntegration(accountID uuid.UUID) error {
+func (m *MemoryStorage) DeleteIntegration(accountID int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if accountID == uuid.Nil {
+	if accountID == 0 {
 		return fmt.Errorf("account ID is required")
+	}
+
+	if accountID < 0 {
+		return fmt.Errorf("invalid ID")
 	}
 
 	if _, exists := m.integrations[accountID]; !exists {
@@ -145,7 +178,10 @@ func (m *MemoryStorage) AddAccount(account *model.Account) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	m.lastAccountID++
+	account.ID = m.lastAccountID
 	m.accounts[account.ID] = account
+
 	return nil
 }
 func (m *MemoryStorage) GetAccounts() ([]*model.Account, error) {
@@ -160,7 +196,7 @@ func (m *MemoryStorage) GetAccounts() ([]*model.Account, error) {
 	return accounts, nil
 }
 
-func (m *MemoryStorage) GetAccount(id uuid.UUID) (*model.Account, error) {
+func (m *MemoryStorage) GetAccount(id int) (*model.Account, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -171,18 +207,21 @@ func (m *MemoryStorage) GetAccount(id uuid.UUID) (*model.Account, error) {
 	account = *m.accounts[id]
 	return &account, nil
 }
-func (m *MemoryStorage) GetAccountIntegrations(accountID uuid.UUID) (*model.Integration, error) {
+func (m *MemoryStorage) GetAccountIntegrations(accountID int) (*model.Integration, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	if accountID == uuid.Nil {
+	if accountID == 0 {
 		return nil, fmt.Errorf("account ID is required")
+	}
+	if accountID < 0 {
+		return nil, fmt.Errorf("invalid ID")
 	}
 
 	integration, exists := m.integrations[accountID]
 
 	if !exists {
-		return nil, fmt.Errorf("integration for account %s not found", accountID)
+		return nil, fmt.Errorf("integration for account %d not found", accountID)
 	}
 	return integration, nil
 }

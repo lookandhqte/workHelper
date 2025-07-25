@@ -1,12 +1,14 @@
 package routes
 
 import (
+	"amocrm_golang/auth"
 	"amocrm_golang/database"
 	"amocrm_golang/model"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 func SetupAccountRoutes(r *gin.Engine, accountService *database.AccountService, storage *database.MemoryStorage) {
@@ -19,7 +21,25 @@ func SetupAccountRoutes(r *gin.Engine, accountService *database.AccountService, 
 				return
 			}
 
-			account.ID = uuid.New()
+			// ID будет сгенерирован в accountService.CreateAccount()
+			accessToken, err := auth.GenerateJWT(account.ID, auth.AccessTokenExpiry)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate access token"})
+				return
+			}
+
+			refreshToken, err := auth.GenerateJWT(account.ID, auth.RefreshTokenExpiry)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate refresh token"})
+				return
+			}
+
+			account.AccessToken = accessToken
+			account.RefreshToken = refreshToken
+			account.CreatedAt = time.Now()
+			account.TokenExpires = time.Now().Add(auth.AccessTokenExpiry)
+			account.Expires = 7 // для кэширования
+
 			if err := accountService.CreateAccount(&account); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -39,20 +59,43 @@ func SetupAccountRoutes(r *gin.Engine, accountService *database.AccountService, 
 		})
 
 		accountGroup.GET("/:id", func(c *gin.Context) {
-			id, err := uuid.Parse(c.Param("id"))
-			account, err := accountService.GetAccountByID(id)
+			id, err := strconv.Atoi(c.Param("id"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID format"})
+				return
+			}
+
+			account, err := storage.GetAccountWithCache(id)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
+			}
+
+			// Проверяем срок действия токена
+			if time.Now().After(account.TokenExpires) {
+				newToken, err := auth.GenerateJWT(account.ID, auth.AccessTokenExpiry)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to refresh token"})
+					return
+				}
+				account.AccessToken = newToken
+				account.TokenExpires = time.Now().Add(auth.AccessTokenExpiry)
+				storage.UpdateAccount(account)
+			}
+
+			// Проверяем expires (дни кэширования)
+			if account.Expires <= 0 {
+				account.Expires = 7
+				storage.UpdateAccount(account)
 			}
 
 			c.JSON(http.StatusOK, account)
 		})
 
 		accountGroup.GET("/:id/integrations", func(c *gin.Context) {
-			accountID, err := uuid.Parse(c.Param("id"))
+			accountID, err := strconv.Atoi(c.Param("id"))
 			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid account ID"})
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid account ID format"})
 				return
 			}
 
@@ -66,9 +109,9 @@ func SetupAccountRoutes(r *gin.Engine, accountService *database.AccountService, 
 		})
 
 		accountGroup.PUT("/:id", func(c *gin.Context) {
-			id, err := uuid.Parse(c.Param("id"))
+			id, err := strconv.Atoi(c.Param("id"))
 			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID format"})
 				return
 			}
 
@@ -88,9 +131,9 @@ func SetupAccountRoutes(r *gin.Engine, accountService *database.AccountService, 
 		})
 
 		accountGroup.DELETE("/:id", func(c *gin.Context) {
-			id, err := uuid.Parse(c.Param("id"))
+			id, err := strconv.Atoi(c.Param("id"))
 			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID format"})
 				return
 			}
 

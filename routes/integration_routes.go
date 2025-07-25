@@ -4,9 +4,9 @@ import (
 	"amocrm_golang/database"
 	"amocrm_golang/model"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 func SetupIntegrationRoutes(r *gin.Engine, integrationService *database.IntegrationService) {
@@ -19,7 +19,12 @@ func SetupIntegrationRoutes(r *gin.Engine, integrationService *database.Integrat
 				return
 			}
 
-			integration.AccountID = uuid.New()
+			// AccountID должен приходить в теле запроса или генерироваться другим способом
+			if integration.AccountID == 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "account ID is required"})
+				return
+			}
+
 			if err := integrationService.CreateIntegration(&integration); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -39,9 +44,9 @@ func SetupIntegrationRoutes(r *gin.Engine, integrationService *database.Integrat
 		})
 
 		integrationGroup.PUT("/:id", func(c *gin.Context) {
-			id, err := uuid.Parse(c.Param("id"))
+			id, err := strconv.Atoi(c.Param("id"))
 			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
+				c.JSON(http.StatusBadRequest, gin.H{"error": "ID must be integer"})
 				return
 			}
 
@@ -61,9 +66,9 @@ func SetupIntegrationRoutes(r *gin.Engine, integrationService *database.Integrat
 		})
 
 		integrationGroup.DELETE("/:id", func(c *gin.Context) {
-			id, err := uuid.Parse(c.Param("id"))
+			id, err := strconv.Atoi(c.Param("id"))
 			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
+				c.JSON(http.StatusBadRequest, gin.H{"error": "ID must be integer"})
 				return
 			}
 
