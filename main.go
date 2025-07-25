@@ -15,26 +15,35 @@ import (
 )
 
 func main() {
+
+	//Инициализация in-memory хранилища
+	//Хранит аккаунты и интеграции в памяти процесса
 	storage := database.NewMemoryStorage()
+
+	//Инициализация сервисного слоя
 	accountService := database.NewAccountService(storage)
 	integrationService := database.NewIntegrationService(storage)
 
 	r := gin.Default()
 
+	//Настройка эндпоинтов REST API
 	routes.SetupAccountRoutes(r, accountService, storage)
 	routes.SetupIntegrationRoutes(r, integrationService)
 
+	//Конфигурация сервера
 	srv := &http.Server{
 		Addr:    ":2020",
 		Handler: r,
 	}
 
+	//Запуск HTTP сервера в отдельной горутине
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}
 	}()
 
+	//Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit

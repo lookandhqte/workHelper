@@ -9,71 +9,79 @@ import (
 	"time"
 )
 
-//Структура сервиса аккаунтов
+//Структура сдля работы с аккаунтами
 type AccountService struct {
-	repo  repository.AccountRepository
-	cache *cache.Cache
+	repo repository.AccountRepository
 }
 
-//Структура сервиса интеграций
+//Структура для работы с интеграциями
 type IntegrationService struct {
 	repo repository.IntegrationRepository
 }
 
-//Создание нового сервиса аккаунтов
+//Создает новый экземпляр для работы с аккаунтами
 func NewAccountService(repo repository.AccountRepository) *AccountService {
 	return &AccountService{
-		repo:  repo,
-		cache: cache.NewCache(),
+		repo: repo,
 	}
 }
 
-//Создание нового сервиса интеграций
+//Создает новый экземпляр для работы с интеграциями
 func NewIntegrationService(repo repository.IntegrationRepository) *IntegrationService {
 	return &IntegrationService{repo: repo}
 }
 
-//Создание аккаунта
+//Создает новый аккаунт
 func (s *AccountService) CreateAccount(account *model.Account) error {
 	return s.repo.AddAccount(account)
 }
 
+//Возвращает все аккаунты
 func (s *AccountService) GetAccountList() ([]*model.Account, error) {
 	return s.repo.GetAccounts()
 }
 
+//Возвращает аккаунт по id
 func (s *AccountService) GetAccountByID(id int) (*model.Account, error) {
 	return s.repo.GetAccount(id)
 }
 
+//Обновляет существующий аккаунт
 func (s *AccountService) UpdateAccount(account *model.Account) error {
 	return s.repo.UpdateAccount(account)
 }
 
+//Удаляет аккаунт
 func (s *AccountService) DeleteAccount(id int) error {
 	return s.repo.DeleteAccount(id)
 }
 
+//Создает интеграцию
 func (s *IntegrationService) CreateIntegration(integration *model.Integration) error {
 	return s.repo.AddIntegration(integration)
 }
 
+//Возвращает все интеграции
 func (s *IntegrationService) GetIntegrationList() ([]*model.Integration, error) {
 	return s.repo.GetIntegrations()
 }
 
+//Возвращает все интеграции конкретного аккаунта
 func (s *IntegrationService) GetAccountIntegrations(accountID int) (*model.Integration, error) {
 	return s.repo.GetAccountIntegrations(accountID)
 }
 
+//Обновляет интеграцию
 func (s *IntegrationService) UpdateIntegration(integration *model.Integration) error {
 	return s.repo.UpdateIntegration(integration)
 }
 
+//Удаляет интеграцию
 func (s *IntegrationService) DeleteIntegration(id int) error {
 	return s.repo.DeleteIntegration(id)
 }
 
+//Структура in-memory хранилища
 type MemoryStorage struct {
 	mu            sync.RWMutex
 	accounts      map[int]*model.Account
@@ -92,6 +100,7 @@ func NewMemoryStorage() *MemoryStorage {
 	}
 }
 
+//Возвращает аккаунт по ID с использованием кэша
 func (m *MemoryStorage) GetAccountWithCache(id int) (*model.Account, error) {
 	if cached, ok := m.cache.Get(id); ok {
 		return cached.(*model.Account), nil
@@ -106,6 +115,7 @@ func (m *MemoryStorage) GetAccountWithCache(id int) (*model.Account, error) {
 	return account, nil
 }
 
+//Обновляет аккаунт
 func (m *MemoryStorage) UpdateAccount(account *model.Account) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -125,6 +135,8 @@ func (m *MemoryStorage) UpdateAccount(account *model.Account) error {
 	m.accounts[account.ID] = account
 	return nil
 }
+
+//Удаляет аккаунт
 func (m *MemoryStorage) DeleteAccount(id int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -143,6 +155,7 @@ func (m *MemoryStorage) DeleteAccount(id int) error {
 	return nil
 }
 
+//Удаляет интеграцию по ID аккаунта
 func (m *MemoryStorage) DeleteIntegration(accountID int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -162,6 +175,7 @@ func (m *MemoryStorage) DeleteIntegration(accountID int) error {
 	return nil
 }
 
+//Обновляет интеграцию
 func (m *MemoryStorage) UpdateIntegration(integration *model.Integration) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -174,6 +188,7 @@ func (m *MemoryStorage) UpdateIntegration(integration *model.Integration) error 
 	return nil
 }
 
+//Добавляет аккаунт
 func (m *MemoryStorage) AddAccount(account *model.Account) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -184,6 +199,8 @@ func (m *MemoryStorage) AddAccount(account *model.Account) error {
 
 	return nil
 }
+
+//Возвращает все аккаунты
 func (m *MemoryStorage) GetAccounts() ([]*model.Account, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -196,6 +213,7 @@ func (m *MemoryStorage) GetAccounts() ([]*model.Account, error) {
 	return accounts, nil
 }
 
+//Возвращает аккаунт по ID
 func (m *MemoryStorage) GetAccount(id int) (*model.Account, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -207,6 +225,8 @@ func (m *MemoryStorage) GetAccount(id int) (*model.Account, error) {
 	account = *m.accounts[id]
 	return &account, nil
 }
+
+//Возвращает интеграции аккаунта
 func (m *MemoryStorage) GetAccountIntegrations(accountID int) (*model.Integration, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -226,6 +246,7 @@ func (m *MemoryStorage) GetAccountIntegrations(accountID int) (*model.Integratio
 	return integration, nil
 }
 
+//Добавляет интеграцию
 func (m *MemoryStorage) AddIntegration(integration *model.Integration) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -233,6 +254,8 @@ func (m *MemoryStorage) AddIntegration(integration *model.Integration) error {
 	m.integrations[integration.AccountID] = integration
 	return nil
 }
+
+//Возвращает интеграции
 func (m *MemoryStorage) GetIntegrations() ([]*model.Integration, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

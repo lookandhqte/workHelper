@@ -14,6 +14,7 @@ import (
 func SetupAccountRoutes(r *gin.Engine, accountService *database.AccountService, storage *database.MemoryStorage) {
 	accountGroup := r.Group("/accounts")
 	{
+		//Создать аккаунт
 		accountGroup.POST("/", func(c *gin.Context) {
 			var account model.Account
 			if err := c.ShouldBindJSON(&account); err != nil {
@@ -48,6 +49,7 @@ func SetupAccountRoutes(r *gin.Engine, accountService *database.AccountService, 
 			c.JSON(http.StatusCreated, account)
 		})
 
+		//Получить аккаунты
 		accountGroup.GET("/", func(c *gin.Context) {
 			accounts, err := accountService.GetAccountList()
 			if err != nil {
@@ -58,6 +60,7 @@ func SetupAccountRoutes(r *gin.Engine, accountService *database.AccountService, 
 			c.JSON(http.StatusOK, accounts)
 		})
 
+		//Получить аккаунт по ID
 		accountGroup.GET("/:id", func(c *gin.Context) {
 			id, err := strconv.Atoi(c.Param("id"))
 			if err != nil {
@@ -92,6 +95,7 @@ func SetupAccountRoutes(r *gin.Engine, accountService *database.AccountService, 
 			c.JSON(http.StatusOK, account)
 		})
 
+		//Получить интеграции конкретного аккаунта
 		accountGroup.GET("/:id/integrations", func(c *gin.Context) {
 			accountID, err := strconv.Atoi(c.Param("id"))
 			if err != nil {
@@ -108,6 +112,7 @@ func SetupAccountRoutes(r *gin.Engine, accountService *database.AccountService, 
 			c.JSON(http.StatusOK, integration)
 		})
 
+		//Обновить аккаунт по ID
 		accountGroup.PUT("/:id", func(c *gin.Context) {
 			id, err := strconv.Atoi(c.Param("id"))
 			if err != nil {
@@ -130,6 +135,7 @@ func SetupAccountRoutes(r *gin.Engine, accountService *database.AccountService, 
 			c.JSON(http.StatusOK, account)
 		})
 
+		//Удалить аккаунт по ID
 		accountGroup.DELETE("/:id", func(c *gin.Context) {
 			id, err := strconv.Atoi(c.Param("id"))
 			if err != nil {

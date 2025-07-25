@@ -12,6 +12,7 @@ import (
 func SetupIntegrationRoutes(r *gin.Engine, integrationService *database.IntegrationService) {
 	integrationGroup := r.Group("/integrations")
 	{
+		//Создать интеграцию
 		integrationGroup.POST("/", func(c *gin.Context) {
 			var integration model.Integration
 			if err := c.ShouldBindJSON(&integration); err != nil {
@@ -19,7 +20,7 @@ func SetupIntegrationRoutes(r *gin.Engine, integrationService *database.Integrat
 				return
 			}
 
-			// AccountID должен приходить в теле запроса или генерироваться другим способом
+			//AccountID должен передаваться в теле запроса
 			if integration.AccountID == 0 {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "account ID is required"})
 				return
@@ -33,6 +34,7 @@ func SetupIntegrationRoutes(r *gin.Engine, integrationService *database.Integrat
 			c.JSON(http.StatusCreated, integration)
 		})
 
+		//Получить все интеграции
 		integrationGroup.GET("/", func(c *gin.Context) {
 			integrations, err := integrationService.GetIntegrationList()
 			if err != nil {
@@ -43,6 +45,7 @@ func SetupIntegrationRoutes(r *gin.Engine, integrationService *database.Integrat
 			c.JSON(http.StatusOK, integrations)
 		})
 
+		//Обновить интеграцию по ID
 		integrationGroup.PUT("/:id", func(c *gin.Context) {
 			id, err := strconv.Atoi(c.Param("id"))
 			if err != nil {
@@ -65,6 +68,7 @@ func SetupIntegrationRoutes(r *gin.Engine, integrationService *database.Integrat
 			c.JSON(http.StatusOK, integration)
 		})
 
+		//Удалить интеграцию по ID
 		integrationGroup.DELETE("/:id", func(c *gin.Context) {
 			id, err := strconv.Atoi(c.Param("id"))
 			if err != nil {
