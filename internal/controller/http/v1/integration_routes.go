@@ -2,7 +2,7 @@ package v1
 
 import (
 	"amocrm_golang/internal/entity"
-	"amocrm_golang/internal/usecase"
+	"amocrm_golang/internal/usecase/integration"
 	"net/http"
 	"strconv"
 
@@ -10,10 +10,10 @@ import (
 )
 
 type integrationRoutes struct {
-	uc usecase.IntegrationUseCase
+	uc integration.IntegrationUseCase
 }
 
-func NewIntegrationRoutes(handler *gin.RouterGroup, uc usecase.IntegrationUseCase) {
+func NewIntegrationRoutes(handler *gin.RouterGroup, uc integration.IntegrationUseCase) {
 	r := &integrationRoutes{uc}
 
 	h := handler.Group("/integrations")

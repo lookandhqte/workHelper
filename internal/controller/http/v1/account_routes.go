@@ -2,7 +2,7 @@ package v1
 
 import (
 	"amocrm_golang/internal/entity"
-	"amocrm_golang/internal/usecase"
+	"amocrm_golang/internal/usecase/account"
 	"amocrm_golang/pkg/auth"
 	"net/http"
 	"strconv"
@@ -12,14 +12,14 @@ import (
 )
 
 type accountRoutes struct {
-	uc usecase.AccountUseCase
+	uc account.AccountUseCase
 }
 
 type errorResponse struct {
 	Error string `json:"error"`
 }
 
-func NewAccountRoutes(handler *gin.RouterGroup, uc usecase.AccountUseCase) {
+func NewAccountRoutes(handler *gin.RouterGroup, uc account.AccountUseCase) {
 	r := &accountRoutes{uc}
 
 	h := handler.Group("/accounts")

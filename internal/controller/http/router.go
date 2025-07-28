@@ -2,20 +2,21 @@ package http
 
 import (
 	v1 "amocrm_golang/internal/controller/http/v1"
-	"amocrm_golang/internal/usecase"
+	"amocrm_golang/internal/usecase/account"
+	"amocrm_golang/internal/usecase/integration"
 
 	"github.com/gin-gonic/gin"
 )
 
 type Router struct {
-	accountUC     usecase.AccountUseCase
-	integrationUC usecase.IntegrationUseCase
+	accountUC     account.AccountUseCase
+	integrationUC integration.IntegrationUseCase
 }
 
 func NewRouter(
 	r *gin.Engine,
-	accountUC usecase.AccountUseCase,
-	integrationUC usecase.IntegrationUseCase,
+	accountUC account.AccountUseCase,
+	integrationUC integration.IntegrationUseCase,
 ) {
 	router := &Router{
 		accountUC:     accountUC,

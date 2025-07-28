@@ -1,17 +1,6 @@
-package usecase
+package account
 
-import (
-	"amocrm_golang/internal/entity"
-	"amocrm_golang/internal/repo"
-)
-
-type AccountUseCase struct {
-	repo repo.AccountRepository
-}
-
-func NewAccountUseCase(r repo.AccountRepository) *AccountUseCase {
-	return &AccountUseCase{r}
-}
+import "amocrm_golang/internal/entity"
 
 func (uc *AccountUseCase) Create(account *entity.Account) error {
 	return uc.repo.AddAccount(account)

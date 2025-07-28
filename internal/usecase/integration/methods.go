@@ -1,17 +1,6 @@
-package usecase
+package integration
 
-import (
-	"amocrm_golang/internal/entity"
-	"amocrm_golang/internal/repo"
-)
-
-type IntegrationUseCase struct {
-	repo repo.IntegrationRepository
-}
-
-func NewIntegrationUseCase(r repo.IntegrationRepository) *IntegrationUseCase {
-	return &IntegrationUseCase{r}
-}
+import "amocrm_golang/internal/entity"
 
 func (uc *IntegrationUseCase) Create(integration *entity.Integration) error {
 	return uc.repo.AddIntegration(integration)
