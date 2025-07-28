@@ -2,14 +2,13 @@ package account
 
 import (
 	"amocrm_golang/internal/entity"
-	"amocrm_golang/internal/repo"
 )
 
 type AccountUseCase struct {
-	repo repo.AccountRepository
+	repo accountRepo
 }
 
-type AccountRepo interface {
+type accountRepo interface {
 	AddAccount(account *entity.Account) error
 	GetAccounts() ([]*entity.Account, error)
 	GetAccount(id int) (*entity.Account, error)
@@ -18,6 +17,6 @@ type AccountRepo interface {
 	DeleteAccount(id int) error
 }
 
-func New(r AccountRepo) *AccountUseCase {
+func New(r accountRepo) *AccountUseCase {
 	return &AccountUseCase{repo: r}
 }
