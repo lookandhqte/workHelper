@@ -33,17 +33,6 @@ func NewAccountRoutes(handler *gin.RouterGroup, uc account.AccountUseCase) {
 	}
 }
 
-// @Summary     Create account
-// @Description Create new account
-// @ID          create-account
-// @Tags  	    accounts
-// @Accept      json
-// @Produce     json
-// @Param       request body entity.Account true "Account info"
-// @Success     201 {object} entity.Account
-// @Failure     400 {object} error_Response
-// @Failure     500 {object} error_Response
-// @Router      /v1/accounts [post]
 func (r *accountRoutes) createAccount(c *gin.Context) {
 	var account entity.Account
 	if err := c.ShouldBindJSON(&account); err != nil {
@@ -63,11 +52,14 @@ func (r *accountRoutes) createAccount(c *gin.Context) {
 		return
 	}
 
-	account.AccessToken = accessToken
-	account.RefreshToken = refreshToken
+	account.AccessToken.AccessToken = accessToken
+	account.RefreshToken.RefreshToken = refreshToken
+	account.AccessToken.CreatedAt = time.Now().Second()
+	account.RefreshToken.CreatedAt = time.Now().Second()
 	account.CreatedAt = time.Now()
-	account.TokenExpires = time.Now().Add(auth.AccessTokenExpiry)
-	account.CacheExpires = 7
+	account.AccessToken.ExpiresIn = int(time.Now().Unix()) + int(auth.AccessTokenExpiry)   //1 СУТКИ
+	account.RefreshToken.ExpiresIn = int(time.Now().Unix()) + int(auth.RefreshTokenExpiry) // 30 СУТОК (СИДЕТЬ)
+	account.CacheExpires = int(time.Now().Unix()) + 604800                                 // 7 СУТОК (КЭША)
 
 	if err := r.uc.Create(&account); err != nil {
 		error_Response(c, http.StatusInternalServerError, err.Error())
@@ -77,15 +69,6 @@ func (r *accountRoutes) createAccount(c *gin.Context) {
 	c.JSON(http.StatusCreated, account)
 }
 
-// @Summary     List accounts
-// @Description Get all accounts
-// @ID          list-accounts
-// @Tags  	    accounts
-// @Accept      json
-// @Produce     json
-// @Success     200 {array} entity.Account
-// @Failure     500 {object} error_Response
-// @Router      /v1/accounts [get]
 func (r *accountRoutes) getAccounts(c *gin.Context) {
 	accounts, err := r.uc.GetAccounts()
 	if err != nil {
@@ -96,18 +79,6 @@ func (r *accountRoutes) getAccounts(c *gin.Context) {
 	c.JSON(http.StatusOK, accounts)
 }
 
-// @Summary     Get account
-// @Description Get account by ID
-// @ID          get-account
-// @Tags  	    accounts
-// @Accept      json
-// @Produce     json
-// @Param       id path int true "Account ID"
-// @Success     200 {object} entity.Account
-// @Failure     400 {object} error_Response
-// @Failure     404 {object} error_Response
-// @Failure     500 {object} error_Response
-// @Router      /v1/accounts/{id} [get]
 func (r *accountRoutes) getAccount(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -124,18 +95,6 @@ func (r *accountRoutes) getAccount(c *gin.Context) {
 	c.JSON(http.StatusOK, account)
 }
 
-// @Summary     Get account integrations
-// @Description Get integrations for account
-// @ID          get-account-integrations
-// @Tags  	    accounts
-// @Accept      json
-// @Produce     json
-// @Param       id path int true "Account ID"
-// @Success     200 {object} entity.Integration
-// @Failure     400 {object} error_Response
-// @Failure     404 {object} error_Response
-// @Failure     500 {object} error_Response
-// @Router      /v1/accounts/{id}/integrations [get]
 func (r *accountRoutes) getAccountIntegrations(c *gin.Context) {
 	accountID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -152,19 +111,6 @@ func (r *accountRoutes) getAccountIntegrations(c *gin.Context) {
 	c.JSON(http.StatusOK, integration)
 }
 
-// @Summary     Update account
-// @Description Update account
-// @ID          update-account
-// @Tags  	    accounts
-// @Accept      json
-// @Produce     json
-// @Param       id path int true "Account ID"
-// @Param       request body entity.Account true "Account info"
-// @Success     200 {object} entity.Account
-// @Failure     400 {object} error_Response
-// @Failure     404 {object} error_Response
-// @Failure     500 {object} error_Response
-// @Router      /v1/accounts/{id} [put]
 func (r *accountRoutes) updateAccount(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -187,18 +133,6 @@ func (r *accountRoutes) updateAccount(c *gin.Context) {
 	c.JSON(http.StatusOK, account)
 }
 
-// @Summary     Delete account
-// @Description Delete account
-// @ID          delete-account
-// @Tags  	    accounts
-// @Accept      json
-// @Produce     json
-// @Param       id path int true "Account ID"
-// @Success     204
-// @Failure     400 {object} error_Response
-// @Failure     404 {object} error_Response
-// @Failure     500 {object} error_Response
-// @Router      /v1/accounts/{id} [delete]
 func (r *accountRoutes) deleteAccount(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

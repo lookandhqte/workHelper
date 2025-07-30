@@ -10,8 +10,8 @@ import (
 
 // Константы времени жизни токенов
 const (
-	AccessTokenExpiry  = 15 * time.Minute
-	RefreshTokenExpiry = 7 * 24 * time.Hour
+	AccessTokenExpiry  = 86400 * time.Second
+	RefreshTokenExpiry = 2592000 * time.Second
 	SecretKey          = "amocrm_meow" // Дефолтный секретный ключ (переопределяется из .env)
 )
 

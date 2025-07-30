@@ -25,17 +25,6 @@ func NewIntegrationRoutes(handler *gin.RouterGroup, uc integration.IntegrationUs
 	}
 }
 
-// @Summary     Create integration
-// @Description Create new integration
-// @ID          create-integration
-// @Tags  	    integrations
-// @Accept      json
-// @Produce     json
-// @Param       request body entity.Integration true "Integration info"
-// @Success     201 {object} entity.Integration
-// @Failure     400 {object} error_Response
-// @Failure     500 {object} error_Response
-// @Router      /v1/integrations [post]
 func (r *integrationRoutes) createIntegration(c *gin.Context) {
 	var integration entity.Integration
 	if err := c.ShouldBindJSON(&integration); err != nil {
@@ -56,15 +45,6 @@ func (r *integrationRoutes) createIntegration(c *gin.Context) {
 	c.JSON(http.StatusCreated, integration)
 }
 
-// @Summary     List integrations
-// @Description Get all integrations
-// @ID          list-integrations
-// @Tags  	    integrations
-// @Accept      json
-// @Produce     json
-// @Success     200 {array} entity.Integration
-// @Failure     500 {object} error_Response
-// @Router      /v1/integrations [get]
 func (r *integrationRoutes) getIntegrations(c *gin.Context) {
 	integrations, err := r.uc.Return(nil) // Используем Return вместо GetAll
 	if err != nil {
@@ -75,19 +55,6 @@ func (r *integrationRoutes) getIntegrations(c *gin.Context) {
 	c.JSON(http.StatusOK, integrations)
 }
 
-// @Summary     Update integration
-// @Description Update integration
-// @ID          update-integration
-// @Tags  	    integrations
-// @Accept      json
-// @Produce     json
-// @Param       id path int true "Integration ID"
-// @Param       request body entity.Integration true "Integration info"
-// @Success     200 {object} entity.Integration
-// @Failure     400 {object} error_Response
-// @Failure     404 {object} error_Response
-// @Failure     500 {object} error_Response
-// @Router      /v1/integrations/{id} [put]
 func (r *integrationRoutes) updateIntegration(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -110,18 +77,6 @@ func (r *integrationRoutes) updateIntegration(c *gin.Context) {
 	c.JSON(http.StatusOK, integration)
 }
 
-// @Summary     Delete integration
-// @Description Delete integration
-// @ID          delete-integration
-// @Tags  	    integrations
-// @Accept      json
-// @Produce     json
-// @Param       id path int true "Integration ID"
-// @Success     204
-// @Failure     400 {object} error_Response
-// @Failure     404 {object} error_Response
-// @Failure     500 {object} error_Response
-// @Router      /v1/integrations/{id} [delete]
 func (r *integrationRoutes) deleteIntegration(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"amocrm_golang/internal/repo/persistent"
 	accountUC "amocrm_golang/internal/usecase/account"
 	integrationUC "amocrm_golang/internal/usecase/integration"
+	tokenUC "amocrm_golang/internal/usecase/token"
 	"amocrm_golang/pkg/cache"
 
 	"github.com/gin-gonic/gin"
@@ -18,6 +19,7 @@ type dependencies struct {
 	cfg           *config.Config
 	AccountUC     *accountUC.AccountUseCase
 	IntegrationUC *integrationUC.IntegrationUseCase
+	TokenUC       *tokenUC.TokenUseCase
 }
 
 // composeDependencies инициализирует все зависимости
@@ -30,6 +32,7 @@ func composeDependencies() *dependencies {
 		cfg:           cfg,
 		AccountUC:     accountUC.New(storage),
 		IntegrationUC: integrationUC.New(storage),
+		TokenUC:       tokenUC.New(storage),
 	}
 }
 
@@ -38,7 +41,7 @@ func setupRouter(deps *dependencies) *gin.Engine {
 	router := gin.Default()
 	router.GET("/swagger/*any", sw.WrapHandler(fils.Handler))
 
-	controllerhttp.NewRouter(router, *deps.AccountUC, *deps.IntegrationUC)
+	controllerhttp.NewRouter(router, *deps.AccountUC, *deps.IntegrationUC, *deps.TokenUC)
 
 	return router
 }

@@ -13,6 +13,10 @@ type Config struct {
 	JWTSecret      string
 	AccessTokenTTL time.Duration
 	HTTPAddr       string
+	ClientID       string
+	ClientSecret   string
+	RedirectURI    string
+	AccessTokenURL string
 }
 
 //Подгрузка .env и создание конфига
@@ -22,9 +26,13 @@ func Load() *Config {
 	}
 
 	return &Config{
-		JWTSecret:      getEnv("JWT_SECRET", "default_secret_key"),
+		JWTSecret:      getEnv("JWT_SECRET", ""),
 		AccessTokenTTL: time.Minute * 15,
-		HTTPAddr:       getEnv("PORT", "2020"),
+		HTTPAddr:       getEnv("PORT", ":2020"),
+		ClientID:       getEnv("CLIENT_ID", ""),
+		ClientSecret:   getEnv("CLIENT_SECRET", ""),
+		RedirectURI:    getEnv("REDIRECT_URI", ""),
+		AccessTokenURL: getEnv("ACCESS_TOKEN_URL", ""),
 	}
 }
 

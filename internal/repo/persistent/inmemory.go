@@ -157,11 +157,20 @@ func (m *MemoryStorage) DeleteIntegration(accountID int) error {
 }
 
 //Функиця должна добавлять новые токены
-func (m *MemoryStorage) AddTokens(response entity.Token) error {
+func (m *MemoryStorage) AddTokens(response *entity.Token) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.tokens[0] = &response
+	m.tokens[0] = response
+
+	return nil
+}
+
+func (m *MemoryStorage) DeleteTokens() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	delete(m.tokens, 0)
 
 	return nil
 }
@@ -171,8 +180,9 @@ func (m *MemoryStorage) UpdateRToken(refresh string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.tokens[0].RefreshToken = refresh
-
+	m.tokens[0].RefreshToken.RefreshToken = refresh
+	m.tokens[0].RefreshToken.CreatedAt = time.Now().Second()
+	m.tokens[0].RefreshToken.ExpiresIn = time.Now().Second() + 2592000 // 30 дней в секундах
 	return nil
 }
 
@@ -181,7 +191,18 @@ func (m *MemoryStorage) UpdateAToken(access string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.tokens[0].AccessToken = access
+	m.tokens[0].AccessToken.AccessToken = access
+	m.tokens[0].AccessToken.CreatedAt = time.Now().Second()
+	m.tokens[0].AccessToken.ExpiresIn = time.Now().Second() + 86400 // 1 сутки в секундах
 
 	return nil
+}
+
+func (m *MemoryStorage) GetRefreshToken() (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if len(m.tokens) == 0 {
+		return "", fmt.Errorf("no refresh key in storage")
+	}
+	return m.tokens[0].RefreshToken.RefreshToken, nil
 }

@@ -6,20 +6,33 @@ import (
 
 //Структура аккаунта
 type Account struct {
-	ID           int       `json:"id"`
-	AccessToken  string    `json:"access_token"`
-	RefreshToken string    `json:"refresh_token"`
-	CacheExpires int       `json:"cache_expires"`
-	CreatedAt    time.Time `json:"created_at"`
-	TokenExpires time.Time `json:"expires_in"`
+	ID           int          `json:"id"`
+	AccessToken  AccessToken  `json:"access_token"`
+	RefreshToken RefreshToken `json:"refresh_token"`
+	CacheExpires int          `json:"cache_expires"`
+	CreatedAt    time.Time    `json:"created_at"`
 }
 
 type Token struct {
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int    `json:"expires_in"`
-	ServerTime   int    `json:"server_time"`
-	AccessToken  string `json:"access_token"`
+	TokenType    string       `json:"token_type"`
+	ExpiresIn    int          `json:"expires_in"`
+	ServerTime   int          `json:"server_time"`
+	AccessToken  AccessToken  `json:"access_token"`
+	RefreshToken RefreshToken `json:"refresh_token"`
+}
+
+type AccessToken struct {
+	AccessToken string `json:"access_token"`
+	ExpiresIn   int    `json:"expires_in"`
+	CreatedAt   int    `json:"created_at"`
+	TTL         int    `json:"ttl"`
+}
+
+type RefreshToken struct {
 	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int    `json:"expires_in"`
+	CreatedAt    int    `json:"created_at"`
+	TTL          int    `json:"ttl"`
 }
 
 //Структура интеграции
