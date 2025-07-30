@@ -9,9 +9,17 @@ type Account struct {
 	ID           int       `json:"id"`
 	AccessToken  string    `json:"access_token"`
 	RefreshToken string    `json:"refresh_token"`
-	Expires      int       `json:"expires"`
+	CacheExpires int       `json:"cache_expires"`
 	CreatedAt    time.Time `json:"created_at"`
-	TokenExpires time.Time `json:"token_expires"`
+	TokenExpires time.Time `json:"expires_in"`
+}
+
+type Token struct {
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int    `json:"expires_in"`
+	ServerTime   int    `json:"server_time"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 //Структура интеграции

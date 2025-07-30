@@ -67,7 +67,7 @@ func (r *accountRoutes) createAccount(c *gin.Context) {
 	account.RefreshToken = refreshToken
 	account.CreatedAt = time.Now()
 	account.TokenExpires = time.Now().Add(auth.AccessTokenExpiry)
-	account.Expires = 7
+	account.CacheExpires = 7
 
 	if err := r.uc.Create(&account); err != nil {
 		error_Response(c, http.StatusInternalServerError, err.Error())
