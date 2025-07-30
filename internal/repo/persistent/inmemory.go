@@ -12,6 +12,7 @@ type MemoryStorage struct {
 	mu            sync.RWMutex
 	accounts      map[int]*entity.Account
 	integrations  map[int]*entity.Integration
+	tokens        map[int]*entity.Token
 	lastAccountID int
 	cache         *cache.Cache
 }
@@ -20,6 +21,7 @@ func NewMemoryStorage(c *cache.Cache) *MemoryStorage {
 	return &MemoryStorage{
 		accounts:      make(map[int]*entity.Account),
 		integrations:  make(map[int]*entity.Integration),
+		tokens:        make(map[int]*entity.Token),
 		lastAccountID: 0,
 		cache:         c,
 	}
@@ -151,5 +153,35 @@ func (m *MemoryStorage) DeleteIntegration(accountID int) error {
 	}
 
 	delete(m.integrations, accountID)
+	return nil
+}
+
+//Функиця должна добавлять новые токены
+func (m *MemoryStorage) AddTokens(response entity.Token) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.tokens[0] = &response
+
+	return nil
+}
+
+//Функиця должна добавлять обновлять рефреш токен
+func (m *MemoryStorage) UpdateRToken(refresh string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.tokens[0].RefreshToken = refresh
+
+	return nil
+}
+
+//Функиця должна добавлять обновлять access токен
+func (m *MemoryStorage) UpdateAToken(access string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.tokens[0].AccessToken = access
+
 	return nil
 }
