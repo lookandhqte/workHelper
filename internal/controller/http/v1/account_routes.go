@@ -52,14 +52,12 @@ func (r *accountRoutes) createAccount(c *gin.Context) {
 		return
 	}
 
-	account.AccessToken.AccessToken = accessToken
-	account.RefreshToken.RefreshToken = refreshToken
-	account.AccessToken.CreatedAt = time.Now().Second()
-	account.RefreshToken.CreatedAt = time.Now().Second()
+	account.AccessToken = accessToken
+	account.RefreshToken = refreshToken
 	account.CreatedAt = time.Now()
-	account.AccessToken.ExpiresIn = int(time.Now().Unix()) + int(auth.AccessTokenExpiry)   //1 СУТКИ
-	account.RefreshToken.ExpiresIn = int(time.Now().Unix()) + int(auth.RefreshTokenExpiry) // 30 СУТОК (СИДЕТЬ)
-	account.CacheExpires = int(time.Now().Unix()) + 604800                                 // 7 СУТОК (КЭША)
+	account.AccessTokenExpiresIn = int(time.Now().Unix()) + int(auth.AccessTokenExpiry)   //1 СУТКИ
+	account.RefreshTokenExpiresIn = int(time.Now().Unix()) + int(auth.RefreshTokenExpiry) // 30 СУТОК (СИДЕТЬ)
+	account.CacheExpires = int(time.Now().Unix()) + 604800                                // 7 СУТОК (КЭША)
 
 	if err := r.uc.Create(&account); err != nil {
 		error_Response(c, http.StatusInternalServerError, err.Error())

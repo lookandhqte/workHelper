@@ -180,9 +180,8 @@ func (m *MemoryStorage) UpdateRToken(refresh string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.tokens[0].RefreshToken.RefreshToken = refresh
-	m.tokens[0].RefreshToken.CreatedAt = time.Now().Second()
-	m.tokens[0].RefreshToken.ExpiresIn = time.Now().Second() + 2592000 // 30 дней в секундах
+	m.tokens[0].RefreshToken = refresh
+	m.tokens[0].ExpiresIn = time.Now().Second() + 2592000 // 30 дней в секундах
 	return nil
 }
 
@@ -191,9 +190,8 @@ func (m *MemoryStorage) UpdateAToken(access string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.tokens[0].AccessToken.AccessToken = access
-	m.tokens[0].AccessToken.CreatedAt = time.Now().Second()
-	m.tokens[0].AccessToken.ExpiresIn = time.Now().Second() + 86400 // 1 сутки в секундах
+	m.tokens[0].AccessToken = access
+	m.tokens[0].ExpiresIn = time.Now().Second() + 86400 // 1 сутки в секундах
 
 	return nil
 }
@@ -204,5 +202,5 @@ func (m *MemoryStorage) GetRefreshToken() (string, error) {
 	if len(m.tokens) == 0 {
 		return "", fmt.Errorf("no refresh key in storage")
 	}
-	return m.tokens[0].RefreshToken.RefreshToken, nil
+	return m.tokens[0].RefreshToken, nil
 }

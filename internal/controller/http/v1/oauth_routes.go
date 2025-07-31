@@ -55,7 +55,7 @@ func (r *oauthRoutes) handleRedirect(c *gin.Context) {
 
 	cfg := config.Load()
 
-	tokens, err := r.GetTokensByAuthCode(code, cfg)
+	tokens, err := r.GetTokensByAuthCode(code, clientID, cfg)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errResponse{Error: err.Error()})
 		return
@@ -72,13 +72,13 @@ func (r *oauthRoutes) handleRedirect(c *gin.Context) {
 	})
 }
 
-func (r *oauthRoutes) GetTokensByAuthCode(code string, config *config.Config) (*entity.Token, error) {
+func (r *oauthRoutes) GetTokensByAuthCode(code string, client_id string, config *config.Config) (*entity.Token, error) {
 	data := url.Values{}
-	data.Set("client_id", config.ClientID)
-	data.Set("client_secret", config.ClientSecret)
+	data.Set("client_id", client_id)
+	data.Set("client_secret", config.ClientSecret) //config.ClientSecret
 	data.Set("grant_type", "authorization_code")
 	data.Set("code", code)
-	data.Set("redirect_uri", config.RedirectURI)
+	data.Set("redirect_uri", config.RedirectURI) //config.RedirectURI
 
 	req, err := http.NewRequest("POST", config.AccessTokenURL, bytes.NewBufferString(data.Encode()))
 	if err != nil {
@@ -110,12 +110,13 @@ func (r *oauthRoutes) GetTokensByAuthCode(code string, config *config.Config) (*
 
 func (r *oauthRoutes) getTokens(c *gin.Context) {
 	cfg := config.Load()
-	tokens, err := r.GetTokensByAuthCode(c.Param("code"), cfg)
+	tokens, err := r.GetTokensByAuthCode(c.Param("code"), c.Param("client_id"), cfg)
 
 	if err != nil {
 		err_Response(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+	fmt.Printf("Tokens:\n%s\n%s", tokens.AccessToken, tokens.RefreshToken)
 
 	if err := r.uc.Create(tokens); err != nil {
 		err_Response(c, http.StatusInternalServerError, err.Error())
@@ -182,7 +183,7 @@ func (r *oauthRoutes) UpdateTokens(config *config.Config) (string, string, error
 		return "", "", fmt.Errorf("error decoding JSON: %v", err)
 	}
 
-	return responseData.AccessToken.AccessToken, responseData.RefreshToken.RefreshToken, nil
+	return responseData.AccessToken, responseData.RefreshToken, nil
 }
 
 func (r *oauthRoutes) deleteTokens(c *gin.Context) {
