@@ -8,6 +8,7 @@ type TokenUseCase struct {
 
 type tokenRepo interface {
 	AddTokens(response *entity.Token) error
+	GetTokens() (*entity.Token, error)
 	GetRefreshToken() (string, error)
 	DeleteTokens() error
 	UpdateTokens(response *entity.Token) error

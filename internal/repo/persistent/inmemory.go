@@ -191,3 +191,13 @@ func (m *MemoryStorage) GetRefreshToken() (string, error) {
 	}
 	return ref.RefreshToken, nil
 }
+
+func (m *MemoryStorage) GetTokens() (*entity.Token, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	val, exists := m.cache.GetToken(0)
+	if !exists {
+		return nil, fmt.Errorf("no tokens in storage")
+	}
+	return val, nil
+}

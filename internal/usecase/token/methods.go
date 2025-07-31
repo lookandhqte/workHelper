@@ -13,6 +13,10 @@ func (uc *TokenUseCase) GetRefreshToken() (string, error) {
 	return uc.repo.GetRefreshToken()
 }
 
+func (uc *TokenUseCase) GetTokens() (*entity.Token, error) {
+	return uc.repo.GetTokens()
+}
+
 func (uc *TokenUseCase) Delete() error {
 	return uc.repo.DeleteTokens()
 }
