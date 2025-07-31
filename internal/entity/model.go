@@ -19,6 +19,13 @@ type Token struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type Contact struct {
+	Name  string  `json:"name"`
+	Email *string `json:"email"`
+}
+
+type Contacts []Contact
+
 //Структура интеграции
 type Integration struct {
 	AccountID   int    `json:"account_id"`

@@ -16,7 +16,7 @@ type Config struct {
 	ClientID       string
 	ClientSecret   string
 	RedirectURI    string
-	AccessTokenURL string
+	BaseUrl        string
 }
 
 //Подгрузка .env и создание конфига
@@ -32,7 +32,7 @@ func Load() *Config {
 		ClientID:       getEnv("CLIENT_ID", ""),
 		ClientSecret:   getEnv("CLIENT_SECRET", ""),
 		RedirectURI:    getEnv("REDIRECT_URI", ""),
-		AccessTokenURL: getEnv("ACCESS_TOKEN_URL", ""),
+		BaseUrl:        getEnv("BASE_URL", ""),
 	}
 }
 

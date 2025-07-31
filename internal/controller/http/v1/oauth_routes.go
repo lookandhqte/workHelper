@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"path"
 	"time"
 
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
@@ -95,12 +96,18 @@ func (r *oauthRoutes) UpdateTokens(client_id string, config *config.Config) (*en
 
 	data := url.Values{}
 	data.Set("client_id", client_id)
-	data.Set("client_secret", config.ClientSecret)
+	data.Set("client_secret", "hVVNmaDY37U0Xq6F3EYMet5PG3pgprdkorK0622YkCu45NdYot7RAlgyY23uScXz") //config.CllientSecret
 	data.Set("grant_type", "refresh_token")
 	data.Set("refresh_token", refresh)
-	data.Set("redirect_uri", config.RedirectURI)
+	data.Set("redirect_uri", "https://3770ac4ccc2b.ngrok-free.app/v1/oauth/redirect") //config.RedirectURI
+	base, err := url.Parse("https://spetser.amocrm.ru")                               //config.BaseUrl
+	if err != nil {
+		return nil, fmt.Errorf("invalid base URL: %v", err)
+	}
 
-	return r.sendTokenRequest(data, config.AccessTokenURL)
+	base.Path = path.Join(base.Path, "/oauth2/access_token")
+	fullURL := base.String()
+	return r.sendTokenRequest(data, fullURL)
 }
 
 func (r *oauthRoutes) handleRedirect(c *gin.Context) {
@@ -133,12 +140,18 @@ func (r *oauthRoutes) handleRedirect(c *gin.Context) {
 func (r *oauthRoutes) GetTokensByAuthCode(code string, client_id string, config *config.Config) (*entity.Token, error) {
 	data := url.Values{}
 	data.Set("client_id", client_id)
-	data.Set("client_secret", config.ClientSecret)
+	data.Set("client_secret", "hVVNmaDY37U0Xq6F3EYMet5PG3pgprdkorK0622YkCu45NdYot7RAlgyY23uScXz") //config.CllientSecret
 	data.Set("grant_type", "authorization_code")
 	data.Set("code", code)
-	data.Set("redirect_uri", config.RedirectURI)
+	data.Set("redirect_uri", "https://3770ac4ccc2b.ngrok-free.app/v1/oauth/redirect") //config.RedirectURI
+	base, err := url.Parse("https://spetser.amocrm.ru")                               //config.BaseUrl
+	if err != nil {
+		return nil, fmt.Errorf("invalid base URL: %v", err)
+	}
 
-	return r.sendTokenRequest(data, config.AccessTokenURL)
+	base.Path = path.Join(base.Path, "/oauth2/access_token")
+	fullURL := base.String()
+	return r.sendTokenRequest(data, fullURL)
 }
 
 func (r *oauthRoutes) getTokens(c *gin.Context) {
