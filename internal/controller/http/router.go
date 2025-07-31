@@ -32,14 +32,8 @@ func NewRouter(
 		router.accountRoutes(api)
 		router.integrationRoutes(api)
 		router.oauthRoutes(api)
-		router.contactRoutes(api)
 	}
 }
-
-func (r *Router) contactRoutes(api *gin.RouterGroup) {
-	v1.NewContactRoutes(api, r.tokenUC)
-}
-
 func (r *Router) accountRoutes(api *gin.RouterGroup) {
 	v1.NewAccountRoutes(api, r.accountUC)
 }

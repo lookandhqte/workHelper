@@ -183,7 +183,7 @@ func (m *MemoryStorage) AddTokens(response *entity.Token) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.cache.SetToken(BASE_ID_FOR_TOKENS, response, ACCESS_EXPIRES_SEC)
+	m.cache.SetToken(BASE_ID_FOR_TOKENS, response, time.Duration(ACCESS_EXPIRES_SEC)*time.Second)
 
 	return nil
 }
@@ -201,7 +201,7 @@ func (m *MemoryStorage) UpdateTokens(response *entity.Token) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.cache.Set(BASE_ID_FOR_TOKENS, response, ACCESS_EXPIRES_SEC)
+	m.cache.Set(BASE_ID_FOR_TOKENS, response, time.Duration(ACCESS_EXPIRES_SEC)*time.Second)
 	return nil
 }
 
@@ -218,6 +218,8 @@ func (m *MemoryStorage) GetRefreshToken() (string, error) {
 func (m *MemoryStorage) GetTokens() (*entity.Token, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	fmt.Println(m)
 	val, exists := m.cache.GetToken(BASE_ID_FOR_TOKENS)
 	if !exists {
 		return nil, fmt.Errorf("no tokens in storage")
