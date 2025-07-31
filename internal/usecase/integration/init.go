@@ -1,7 +1,7 @@
 package integration
 
 import (
-	"amocrm_golang/internal/entity"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 )
 
 type IntegrationUseCase struct {

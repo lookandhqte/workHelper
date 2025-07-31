@@ -1,9 +1,6 @@
 package v1
 
 import (
-	"amocrm_golang/config"
-	"amocrm_golang/internal/entity"
-	"amocrm_golang/internal/usecase/token"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -12,6 +9,10 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/token"
 
 	"github.com/gin-gonic/gin"
 )
@@ -39,7 +40,7 @@ func NewTokenRoutes(handler *gin.RouterGroup, uc token.TokenUseCase) {
 }
 
 func (r *oauthRoutes) StartTokenRefresher() {
-	ticker := time.NewTicker(1 * time.Hour) // Проверяем каждый час
+	ticker := time.NewTicker(1 * time.Hour)
 	go func() {
 		for range ticker.C {
 			tokens, err := r.uc.GetTokens()
@@ -47,10 +48,12 @@ func (r *oauthRoutes) StartTokenRefresher() {
 				continue
 			}
 
-			// Обновляем токен, если до истечения осталось меньше 1 часа
 			expiryTime := tokens.ServerTime + tokens.ExpiresIn
-
-			if int(time.Now().Unix())-expiryTime <= 3600 {
+			refresh_thr, err := r.uc.GetConst("refresh_threshold")
+			if err != nil {
+				fmt.Printf("you don't have consts refresh thr")
+			}
+			if int(time.Now().Unix())-expiryTime <= refresh_thr {
 				cfg := config.Load()
 				newTokens, err := r.UpdateTokens(cfg.ClientID, cfg)
 				if err != nil {
@@ -101,7 +104,6 @@ func (r *oauthRoutes) UpdateTokens(client_id string, config *config.Config) (*en
 }
 
 func (r *oauthRoutes) handleRedirect(c *gin.Context) {
-	// Извлекаем параметры из запроса
 	code := c.Query("code")
 	clientID := c.Query("client_id")
 	if code == "" {
@@ -170,7 +172,7 @@ func err_Response(c *gin.Context, code int, err string) {
 }
 
 func prepareRequest(url string, data url.Values) (*http.Request, error) {
-	req, err := http.NewRequest("POST", url, bytes.NewBufferString(data.Encode()))
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +193,7 @@ func sendRequest(req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode == http.StatusBadRequest {
 		return nil, fmt.Errorf("API error: %d, body: %s", resp.StatusCode, string(body))
 	}
 

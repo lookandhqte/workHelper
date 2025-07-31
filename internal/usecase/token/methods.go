@@ -1,6 +1,6 @@
 package token
 
-import "amocrm_golang/internal/entity"
+import "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 
 func (uc *TokenUseCase) Create(response *entity.Token) error {
 	return uc.repo.AddTokens(response)
@@ -15,6 +15,10 @@ func (uc *TokenUseCase) GetRefreshToken() (string, error) {
 
 func (uc *TokenUseCase) GetTokens() (*entity.Token, error) {
 	return uc.repo.GetTokens()
+}
+
+func (uc *TokenUseCase) GetConst(req string) (int, error) {
+	return uc.repo.GetConst(req)
 }
 
 func (uc *TokenUseCase) Delete() error {

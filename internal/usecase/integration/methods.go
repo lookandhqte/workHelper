@@ -1,6 +1,6 @@
 package integration
 
-import "amocrm_golang/internal/entity"
+import "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 
 func (uc *IntegrationUseCase) Create(integration *entity.Integration) error {
 	return uc.repo.AddIntegration(integration)

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"amocrm_golang/internal/app"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/app"
 )
 
 func main() {

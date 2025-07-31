@@ -1,18 +1,14 @@
 package entity
 
-import (
-	"time"
-)
-
 //Структура аккаунта
 type Account struct {
-	ID                    int       `json:"id"`
-	AccessToken           string    `json:"access_token"`
-	RefreshToken          string    `json:"refresh_token"`
-	AccessTokenExpiresIn  int       `json:"access_token_expires_in"`
-	RefreshTokenExpiresIn int       `json:"refresh_token_expires_in"`
-	CacheExpires          int       `json:"cache_expires"`
-	CreatedAt             time.Time `json:"created_at"`
+	ID                    int    `json:"id"`
+	AccessToken           string `json:"access_token"`
+	RefreshToken          string `json:"refresh_token"`
+	AccessTokenExpiresIn  int    `json:"access_token_expires_in"`
+	RefreshTokenExpiresIn int    `json:"refresh_token_expires_in"`
+	CacheExpires          int    `json:"cache_expires"`
+	CreatedAt             int    `json:"created_at"`
 }
 
 type Token struct {

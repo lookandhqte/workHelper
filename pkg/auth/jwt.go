@@ -3,7 +3,7 @@ package auth
 import (
 	"time"
 
-	config "amocrm_golang/config"
+	config "git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
 
 	"github.com/golang-jwt/jwt/v4"
 )

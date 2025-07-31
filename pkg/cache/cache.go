@@ -1,9 +1,10 @@
 package cache
 
 import (
-	"amocrm_golang/internal/entity"
 	"sync"
 	"time"
+
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 )
 
 // Потокобезопасное in-memory хранилище

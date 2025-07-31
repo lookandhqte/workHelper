@@ -1,10 +1,11 @@
 package v1
 
 import (
-	"amocrm_golang/internal/entity"
-	"amocrm_golang/internal/usecase/integration"
 	"net/http"
 	"strconv"
+
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/integration"
 
 	"github.com/gin-gonic/gin"
 )
@@ -46,7 +47,7 @@ func (r *integrationRoutes) createIntegration(c *gin.Context) {
 }
 
 func (r *integrationRoutes) getIntegrations(c *gin.Context) {
-	integrations, err := r.uc.Return(nil) // Используем Return вместо GetAll
+	integrations, err := r.uc.Return(nil)
 	if err != nil {
 		error_Response(c, http.StatusInternalServerError, err.Error())
 		return

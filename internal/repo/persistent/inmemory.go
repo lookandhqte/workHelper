@@ -1,11 +1,12 @@
 package persistent
 
 import (
-	"amocrm_golang/internal/entity"
-	"amocrm_golang/pkg/cache"
 	"fmt"
 	"sync"
 	"time"
+
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/pkg/cache"
 )
 
 type MemoryStorage struct {
@@ -16,6 +17,14 @@ type MemoryStorage struct {
 	cache         *cache.Cache
 }
 
+const (
+	BASE_ID_FOR_TOKENS    = 0
+	ACCESS_EXPIRES_SEC    = 86400
+	REFRESH_EXPIRES_SEC   = 2592000
+	CACHE_EXPIRES_SEC     = 604800
+	REFRESH_THRESHOLD_SEC = 3600
+)
+
 func NewMemoryStorage(c *cache.Cache) *MemoryStorage {
 	return &MemoryStorage{
 		accounts:      make(map[int]*entity.Account),
@@ -23,6 +32,22 @@ func NewMemoryStorage(c *cache.Cache) *MemoryStorage {
 		lastAccountID: 0,
 		cache:         c,
 	}
+}
+
+func (m *MemoryStorage) GetConst(req string) (int, error) {
+	switch req {
+	case "id_tokens":
+		return BASE_ID_FOR_TOKENS, nil
+	case "access_exp":
+		return ACCESS_EXPIRES_SEC, nil
+	case "refresh_exp":
+		return REFRESH_EXPIRES_SEC, nil
+	case "cache_exp":
+		return CACHE_EXPIRES_SEC, nil
+	case "refresh_threshold":
+		return REFRESH_THRESHOLD_SEC, nil
+	}
+	return 0, fmt.Errorf("no such constant")
 }
 
 func (m *MemoryStorage) AddAccount(account *entity.Account) error {
@@ -54,7 +79,7 @@ func (m *MemoryStorage) GetAccount(id int) (*entity.Account, error) {
 
 	account, exists := m.accounts[id]
 	if !exists {
-		return nil, fmt.Errorf("account not found")
+		return nil, fmt.Errorf("account not found to get account")
 	}
 
 	return account, nil
@@ -79,7 +104,7 @@ func (m *MemoryStorage) UpdateAccount(account *entity.Account) error {
 	defer m.mu.Unlock()
 
 	if _, exists := m.accounts[account.ID]; !exists {
-		return fmt.Errorf("account not found")
+		return fmt.Errorf("account not found to update")
 	}
 
 	m.accounts[account.ID] = account
@@ -91,7 +116,7 @@ func (m *MemoryStorage) DeleteAccount(id int) error {
 	defer m.mu.Unlock()
 
 	if _, exists := m.accounts[id]; !exists {
-		return fmt.Errorf("account not found")
+		return fmt.Errorf("account not found to delete")
 	}
 
 	delete(m.accounts, id)
@@ -124,7 +149,7 @@ func (m *MemoryStorage) GetAccountIntegrations(accountID int) (*entity.Integrati
 
 	integration, exists := m.integrations[accountID]
 	if !exists {
-		return nil, fmt.Errorf("integration not found")
+		return nil, fmt.Errorf("integration not found to get account integrations")
 	}
 
 	return integration, nil
@@ -135,7 +160,7 @@ func (m *MemoryStorage) UpdateIntegration(integration *entity.Integration) error
 	defer m.mu.Unlock()
 
 	if _, exists := m.integrations[integration.AccountID]; !exists {
-		return fmt.Errorf("integration not found")
+		return fmt.Errorf("integration not found to update")
 	}
 
 	m.integrations[integration.AccountID] = integration
@@ -147,19 +172,18 @@ func (m *MemoryStorage) DeleteIntegration(accountID int) error {
 	defer m.mu.Unlock()
 
 	if _, exists := m.integrations[accountID]; !exists {
-		return fmt.Errorf("integration not found")
+		return fmt.Errorf("integration not found to delete integration")
 	}
 
 	delete(m.integrations, accountID)
 	return nil
 }
 
-//Функиця должна добавлять новые токены
 func (m *MemoryStorage) AddTokens(response *entity.Token) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.cache.SetToken(0, response, 24*time.Hour)
+	m.cache.SetToken(BASE_ID_FOR_TOKENS, response, ACCESS_EXPIRES_SEC)
 
 	return nil
 }
@@ -168,24 +192,23 @@ func (m *MemoryStorage) DeleteTokens() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.cache.DeleteToken(0)
+	m.cache.DeleteToken(BASE_ID_FOR_TOKENS)
 
 	return nil
 }
 
-//Функиця должна добавлять обновлять рефреш токен
 func (m *MemoryStorage) UpdateTokens(response *entity.Token) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.cache.Set(0, response, 24*time.Hour)
+	m.cache.Set(BASE_ID_FOR_TOKENS, response, ACCESS_EXPIRES_SEC)
 	return nil
 }
 
 func (m *MemoryStorage) GetRefreshToken() (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	ref, exists := m.cache.GetToken(0)
+	ref, exists := m.cache.GetToken(BASE_ID_FOR_TOKENS)
 	if !exists {
 		return "", fmt.Errorf("no refresh key in storage")
 	}
@@ -195,7 +218,7 @@ func (m *MemoryStorage) GetRefreshToken() (string, error) {
 func (m *MemoryStorage) GetTokens() (*entity.Token, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	val, exists := m.cache.GetToken(0)
+	val, exists := m.cache.GetToken(BASE_ID_FOR_TOKENS)
 	if !exists {
 		return nil, fmt.Errorf("no tokens in storage")
 	}

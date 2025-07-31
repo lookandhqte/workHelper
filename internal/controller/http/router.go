@@ -1,10 +1,10 @@
 package http
 
 import (
-	v1 "amocrm_golang/internal/controller/http/v1"
-	"amocrm_golang/internal/usecase/account"
-	"amocrm_golang/internal/usecase/integration"
-	"amocrm_golang/internal/usecase/token"
+	v1 "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/controller/http/v1"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/integration"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/token"
 
 	"github.com/gin-gonic/gin"
 )

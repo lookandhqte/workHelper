@@ -1,12 +1,14 @@
 package v1
 
 import (
-	"amocrm_golang/internal/entity"
-	"amocrm_golang/internal/usecase/account"
-	"amocrm_golang/pkg/auth"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
+
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/pkg/auth"
 
 	"github.com/gin-gonic/gin"
 )
@@ -52,12 +54,24 @@ func (r *accountRoutes) createAccount(c *gin.Context) {
 		return
 	}
 
+	access_exp, err := r.uc.GetConst("access_exp")
+	if err != nil {
+		fmt.Printf("you don't have consts access exp")
+	}
+	refresh_exp, err := r.uc.GetConst("refresh_exp")
+	if err != nil {
+		fmt.Printf("you don't have consts refresh exp")
+	}
+	cache_exp, err := r.uc.GetConst("cache_exp")
+	if err != nil {
+		fmt.Printf("you don't have consts cache")
+	}
 	account.AccessToken = accessToken
 	account.RefreshToken = refreshToken
-	account.CreatedAt = time.Now()
-	account.AccessTokenExpiresIn = int(time.Now().Unix()) + int(auth.AccessTokenExpiry)   //1 СУТКИ
-	account.RefreshTokenExpiresIn = int(time.Now().Unix()) + int(auth.RefreshTokenExpiry) // 30 СУТОК (СИДЕТЬ)
-	account.CacheExpires = int(time.Now().Unix()) + 604800                                // 7 СУТОК (КЭША)
+	account.CreatedAt = int(time.Now().Unix())
+	account.AccessTokenExpiresIn = account.CreatedAt + access_exp
+	account.RefreshTokenExpiresIn = account.CreatedAt + refresh_exp
+	account.CacheExpires = account.CreatedAt + cache_exp
 
 	if err := r.uc.Create(&account); err != nil {
 		error_Response(c, http.StatusInternalServerError, err.Error())

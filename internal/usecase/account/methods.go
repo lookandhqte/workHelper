@@ -1,6 +1,6 @@
 package account
 
-import "amocrm_golang/internal/entity"
+import "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 
 func (uc *AccountUseCase) Create(account *entity.Account) error {
 	return uc.repo.AddAccount(account)
@@ -16,6 +16,10 @@ func (uc *AccountUseCase) GetAccount(id int) (*entity.Account, error) {
 
 func (uc *AccountUseCase) GetAccountIntegrations(accountID int) (*entity.Integration, error) {
 	return uc.repo.GetAccountIntegrations(accountID)
+}
+
+func (uc *AccountUseCase) GetConst(req string) (int, error) {
+	return uc.repo.GetConst(req)
 }
 
 func (uc *AccountUseCase) Update(account *entity.Account) error {

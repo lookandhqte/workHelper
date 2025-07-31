@@ -1,6 +1,6 @@
 package token
 
-import "amocrm_golang/internal/entity"
+import "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 
 type TokenUseCase struct {
 	repo tokenRepo
@@ -12,6 +12,7 @@ type tokenRepo interface {
 	GetRefreshToken() (string, error)
 	DeleteTokens() error
 	UpdateTokens(response *entity.Token) error
+	GetConst(req string) (int, error)
 }
 
 func New(r tokenRepo) *TokenUseCase {

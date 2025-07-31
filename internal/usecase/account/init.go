@@ -1,7 +1,7 @@
 package account
 
 import (
-	"amocrm_golang/internal/entity"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 )
 
 type AccountUseCase struct {
@@ -15,6 +15,7 @@ type accountRepo interface {
 	GetAccountIntegrations(accountID int) (*entity.Integration, error)
 	UpdateAccount(account *entity.Account) error
 	DeleteAccount(id int) error
+	GetConst(req string) (int, error)
 }
 
 func New(r accountRepo) *AccountUseCase {

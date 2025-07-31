@@ -1,13 +1,13 @@
 package app
 
 import (
-	"amocrm_golang/config"
-	controllerhttp "amocrm_golang/internal/controller/http"
-	"amocrm_golang/internal/repo/persistent"
-	accountUC "amocrm_golang/internal/usecase/account"
-	integrationUC "amocrm_golang/internal/usecase/integration"
-	tokenUC "amocrm_golang/internal/usecase/token"
-	"amocrm_golang/pkg/cache"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
+	controllerhttp "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/controller/http"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/repo/persistent"
+	accountUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
+	integrationUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/integration"
+	tokenUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/token"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/pkg/cache"
 
 	"github.com/gin-gonic/gin"
 )
