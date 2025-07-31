@@ -126,33 +126,29 @@ func (r *oauthRoutes) getTokens(c *gin.Context) {
 
 func (r *oauthRoutes) updateToken(c *gin.Context) {
 	cfg := config.Load()
-	acc_token, ref_token, err := r.UpdateTokens(cfg)
+	id := c.Param("client_id")
+	resp, err := r.UpdateTokens(id, cfg)
 
 	if err != nil {
 		err_Response(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	if err := r.uc.UpdateRefreshToken(ref_token); err != nil {
+	if err := r.uc.UpdateTokens(resp); err != nil {
 		err_Response(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	if err := r.uc.UpdateAccessToken(acc_token); err != nil {
-		err_Response(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, acc_token)
+	c.JSON(http.StatusOK, resp)
 }
 
-func (r *oauthRoutes) UpdateTokens(config *config.Config) (string, string, error) {
+func (r *oauthRoutes) UpdateTokens(client_id string, config *config.Config) (*entity.Token, error) {
 	refresh, err := r.uc.GetRefreshToken()
 	if err != nil {
-		return "", "", fmt.Errorf("error while getting refresh token")
+		return nil, fmt.Errorf("error while getting refresh token")
 	}
 	data := url.Values{}
-	data.Set("client_id", config.ClientID)
+	data.Set("client_id", client_id)
 	data.Set("client_secret", config.ClientSecret)
 	data.Set("grant_type", "refresh_token")
 	data.Set("refresh_token", refresh)
@@ -160,7 +156,7 @@ func (r *oauthRoutes) UpdateTokens(config *config.Config) (string, string, error
 
 	req, err := http.NewRequest("POST", config.AccessTokenURL, bytes.NewBufferString(data.Encode()))
 	if err != nil {
-		return "", "", fmt.Errorf("error creating request: %v", err)
+		return nil, fmt.Errorf("error creating request: %v", err)
 	}
 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
@@ -168,22 +164,22 @@ func (r *oauthRoutes) UpdateTokens(config *config.Config) (string, string, error
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", "", fmt.Errorf("error making request: %v", err)
+		return nil, fmt.Errorf("error making request: %v", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", "", fmt.Errorf("error reading response: %v", err)
+		return nil, fmt.Errorf("error reading response: %v", err)
 	}
 
 	responseData := &entity.Token{}
 
 	if err := json.Unmarshal(body, &responseData); err != nil {
-		return "", "", fmt.Errorf("error decoding JSON: %v", err)
+		return nil, fmt.Errorf("error decoding JSON: %v", err)
 	}
 
-	return responseData.AccessToken, responseData.RefreshToken, nil
+	return responseData, nil
 }
 
 func (r *oauthRoutes) deleteTokens(c *gin.Context) {

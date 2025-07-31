@@ -10,8 +10,7 @@ type tokenRepo interface {
 	AddTokens(response *entity.Token) error
 	GetRefreshToken() (string, error)
 	DeleteTokens() error
-	UpdateRToken(refresh string) error
-	UpdateAToken(access string) error
+	UpdateTokens(response *entity.Token) error
 }
 
 func New(r tokenRepo) *TokenUseCase {

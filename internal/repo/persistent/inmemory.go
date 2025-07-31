@@ -12,7 +12,6 @@ type MemoryStorage struct {
 	mu            sync.RWMutex
 	accounts      map[int]*entity.Account
 	integrations  map[int]*entity.Integration
-	tokens        map[int]*entity.Token
 	lastAccountID int
 	cache         *cache.Cache
 }
@@ -21,7 +20,6 @@ func NewMemoryStorage(c *cache.Cache) *MemoryStorage {
 	return &MemoryStorage{
 		accounts:      make(map[int]*entity.Account),
 		integrations:  make(map[int]*entity.Integration),
-		tokens:        make(map[int]*entity.Token),
 		lastAccountID: 0,
 		cache:         c,
 	}
@@ -161,7 +159,7 @@ func (m *MemoryStorage) AddTokens(response *entity.Token) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.tokens[0] = response
+	m.cache.SetToken(0, response, 24*time.Hour)
 
 	return nil
 }
@@ -170,37 +168,26 @@ func (m *MemoryStorage) DeleteTokens() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	delete(m.tokens, 0)
+	m.cache.DeleteToken(0)
 
 	return nil
 }
 
 //Функиця должна добавлять обновлять рефреш токен
-func (m *MemoryStorage) UpdateRToken(refresh string) error {
+func (m *MemoryStorage) UpdateTokens(response *entity.Token) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.tokens[0].RefreshToken = refresh
-	m.tokens[0].ExpiresIn = time.Now().Second() + 2592000 // 30 дней в секундах
-	return nil
-}
-
-//Функиця должна добавлять обновлять access токен
-func (m *MemoryStorage) UpdateAToken(access string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.tokens[0].AccessToken = access
-	m.tokens[0].ExpiresIn = time.Now().Second() + 86400 // 1 сутки в секундах
-
+	m.cache.Set(0, response, 24*time.Hour)
 	return nil
 }
 
 func (m *MemoryStorage) GetRefreshToken() (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if len(m.tokens) == 0 {
+	ref, exists := m.cache.GetToken(0)
+	if !exists {
 		return "", fmt.Errorf("no refresh key in storage")
 	}
-	return m.tokens[0].RefreshToken, nil
+	return ref.RefreshToken, nil
 }

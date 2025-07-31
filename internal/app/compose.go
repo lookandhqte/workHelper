@@ -10,8 +10,6 @@ import (
 	"amocrm_golang/pkg/cache"
 
 	"github.com/gin-gonic/gin"
-	fils "github.com/swaggo/files"
-	sw "github.com/swaggo/gin-swagger"
 )
 
 // dependencies содержит все зависимости приложения
@@ -39,7 +37,6 @@ func composeDependencies() *dependencies {
 // setupRouter настраивает маршруты приложения
 func setupRouter(deps *dependencies) *gin.Engine {
 	router := gin.Default()
-	router.GET("/swagger/*any", sw.WrapHandler(fils.Handler))
 
 	controllerhttp.NewRouter(router, *deps.AccountUC, *deps.IntegrationUC, *deps.TokenUC)
 
