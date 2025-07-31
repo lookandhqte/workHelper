@@ -96,11 +96,11 @@ func (r *oauthRoutes) UpdateTokens(client_id string, config *config.Config) (*en
 
 	data := url.Values{}
 	data.Set("client_id", client_id)
-	data.Set("client_secret", "hVVNmaDY37U0Xq6F3EYMet5PG3pgprdkorK0622YkCu45NdYot7RAlgyY23uScXz") //config.CllientSecret
+	data.Set("client_secret", config.ClientSecret) //config.CllientSecret
 	data.Set("grant_type", "refresh_token")
 	data.Set("refresh_token", refresh)
-	data.Set("redirect_uri", "https://3770ac4ccc2b.ngrok-free.app/v1/oauth/redirect") //config.RedirectURI
-	base, err := url.Parse("https://spetser.amocrm.ru")                               //config.BaseUrl
+	data.Set("redirect_uri", config.RedirectURI) //config.RedirectURI
+	base, err := url.Parse(config.BaseUrl)       //config.BaseUrl
 	if err != nil {
 		return nil, fmt.Errorf("invalid base URL: %v", err)
 	}
@@ -140,11 +140,11 @@ func (r *oauthRoutes) handleRedirect(c *gin.Context) {
 func (r *oauthRoutes) GetTokensByAuthCode(code string, client_id string, config *config.Config) (*entity.Token, error) {
 	data := url.Values{}
 	data.Set("client_id", client_id)
-	data.Set("client_secret", "hVVNmaDY37U0Xq6F3EYMet5PG3pgprdkorK0622YkCu45NdYot7RAlgyY23uScXz") //config.CllientSecret
+	data.Set("client_secret", config.ClientSecret) //config.ClientSecret
 	data.Set("grant_type", "authorization_code")
 	data.Set("code", code)
-	data.Set("redirect_uri", "https://3770ac4ccc2b.ngrok-free.app/v1/oauth/redirect") //config.RedirectURI
-	base, err := url.Parse("https://spetser.amocrm.ru")                               //config.BaseUrl
+	data.Set("redirect_uri", config.RedirectURI) //config.RedirectURI
+	base, err := url.Parse(config.BaseUrl)       //config.BaseUrl
 	if err != nil {
 		return nil, fmt.Errorf("invalid base URL: %v", err)
 	}

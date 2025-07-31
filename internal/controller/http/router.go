@@ -3,7 +3,6 @@ package http
 import (
 	v1 "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/controller/http/v1"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/contact"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/integration"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/token"
 
@@ -14,7 +13,6 @@ type Router struct {
 	accountUC     account.AccountUseCase
 	integrationUC integration.IntegrationUseCase
 	tokenUC       token.TokenUseCase
-	contactUC     contact.ContactUseCase
 }
 
 func NewRouter(
@@ -22,13 +20,11 @@ func NewRouter(
 	accountUC account.AccountUseCase,
 	integrationUC integration.IntegrationUseCase,
 	tokenUC token.TokenUseCase,
-	contactUC contact.ContactUseCase,
 ) {
 	router := &Router{
 		accountUC:     accountUC,
 		integrationUC: integrationUC,
 		tokenUC:       tokenUC,
-		contactUC:     contactUC,
 	}
 
 	api := r.Group("/v1")
@@ -41,7 +37,7 @@ func NewRouter(
 }
 
 func (r *Router) contactRoutes(api *gin.RouterGroup) {
-	v1.NewContactRoutes(api, r.contactUC)
+	v1.NewContactRoutes(api, r.tokenUC)
 }
 
 func (r *Router) accountRoutes(api *gin.RouterGroup) {

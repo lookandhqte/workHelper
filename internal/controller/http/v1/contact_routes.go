@@ -8,17 +8,18 @@ import (
 	"net/url"
 	"path"
 
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/contact"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/token"
 
 	"github.com/gin-gonic/gin"
 )
 
 type contactRoutes struct {
-	uc contact.ContactUseCase
+	uc token.TokenUseCase
 }
 
-func NewContactRoutes(handler *gin.RouterGroup, uc contact.ContactUseCase) {
+func NewContactRoutes(handler *gin.RouterGroup, uc token.TokenUseCase) {
 	r := &contactRoutes{uc}
 
 	h := handler.Group("/contacts")
@@ -58,8 +59,8 @@ func (r *contactRoutes) getContacts(c *gin.Context) {
 }
 
 func (r *contactRoutes) GetContacts(token string) (*entity.Contacts, error) {
-	//cfg := config.Load()
-	base, err := url.Parse("https://spetser.amocrm.ru") //cfg.BaseUrl
+	cfg := config.Load()
+	base, err := url.Parse(cfg.BaseUrl)
 	if err != nil {
 		return nil, fmt.Errorf("invalid base URL: %v", err)
 	}
@@ -110,14 +111,12 @@ func (r *contactRoutes) GetContacts(token string) (*entity.Contacts, error) {
 		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
 	}
 
-	// Преобразуем в упрощенную структуру
 	var contacts entity.Contacts
 	for _, contact := range apiResponse.Embedded.Contacts {
 		sc := entity.Contact{
 			Name: contact.Name,
 		}
 
-		// Ищем поле с email
 		for _, field := range contact.CustomFieldsValues {
 			if field.FieldCode == "EMAIL" && len(field.Values) > 0 {
 				email := field.Values[0].Value
