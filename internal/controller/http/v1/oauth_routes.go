@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/dto"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/token"
 
@@ -273,17 +274,19 @@ func (r *oauthRoutes) getContacts(c *gin.Context) {
 
 }
 
-func (r *oauthRoutes) GetContacts(token string) (*entity.Contacts, error) {
+func (r *oauthRoutes) makeRouteURL(pathi string) string {
 	cfg := config.Load()
-	base, err := url.Parse(cfg.BaseUrl)
-	if err != nil {
-		return nil, fmt.Errorf("invalid base URL: %v", err)
-	}
+	base, _ := url.Parse(cfg.BaseUrl)
 
-	base.Path = path.Join(base.Path, "/api/v4/contacts")
+	base.Path = path.Join(base.Path, pathi)
 	fullURL := base.String()
+	return fullURL
+}
 
-	req, err := http.NewRequest("GET", fullURL, nil)
+func (r *oauthRoutes) GetContacts(token string) (*dto.ContactsResponse, error) {
+	fullURL := r.makeRouteURL("/api/v4/contacts")
+
+	req, err := http.NewRequest(http.MethodGet, fullURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %v", err)
 	}
@@ -291,44 +294,26 @@ func (r *oauthRoutes) GetContacts(token string) (*entity.Contacts, error) {
 	req.Header.Add("Authorization", "Bearer "+token)
 	req.Header.Add("Content-Type", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	body, err := sendRequest(req)
 	if err != nil {
-		return nil, fmt.Errorf("request failed: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("error while sending request to get contacts")
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %v", err)
-	}
-
-	var apiResponse struct {
-		Embedded struct {
-			Contacts []struct {
-				Name               string `json:"name"`
-				CustomFieldsValues []struct {
-					FieldCode string `json:"field_code"`
-					Values    []struct {
-						Value string `json:"value"`
-					} `json:"values"`
-				} `json:"custom_fields_values"`
-			} `json:"contacts"`
-		} `json:"_embedded"`
-	}
+	var apiResponse dto.APIContactsResponse
 
 	if err := json.Unmarshal(body, &apiResponse); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
 	}
 
-	var contacts entity.Contacts
+	return r.returnContacts(&apiResponse)
+
+}
+
+func (r *oauthRoutes) returnContacts(apiResponse *dto.APIContactsResponse) (*dto.ContactsResponse, error) {
+
+	var contacts dto.ContactsResponse
 	for _, contact := range apiResponse.Embedded.Contacts {
-		sc := entity.Contact{
+		sc := dto.ContactResponse{
 			Name: contact.Name,
 		}
 
@@ -344,5 +329,4 @@ func (r *oauthRoutes) GetContacts(token string) (*entity.Contacts, error) {
 	}
 
 	return &contacts, nil
-
 }
