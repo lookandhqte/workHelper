@@ -305,28 +305,6 @@ func (r *oauthRoutes) GetContacts(token string) (*dto.ContactsResponse, error) {
 		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
 	}
 
-	return r.returnContacts(&apiResponse)
+	return apiResponse.ToContactsResponse(), nil
 
-}
-
-func (r *oauthRoutes) returnContacts(apiResponse *dto.APIContactsResponse) (*dto.ContactsResponse, error) {
-
-	var contacts dto.ContactsResponse
-	for _, contact := range apiResponse.Embedded.Contacts {
-		sc := dto.ContactResponse{
-			Name: contact.Name,
-		}
-
-		for _, field := range contact.CustomFieldsValues {
-			if field.FieldCode == "EMAIL" && len(field.Values) > 0 {
-				email := field.Values[0].Value
-				sc.Email = &email
-				break
-			}
-		}
-
-		contacts = append(contacts, sc)
-	}
-
-	return &contacts, nil
 }
