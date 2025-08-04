@@ -7,14 +7,6 @@ type ContactResponse struct {
 
 type ContactsResponse []ContactResponse
 
-type TokenResponse struct {
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int    `json:"expires_in"`
-	ServerTime   int    `json:"server_time"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-}
-
 type APIContactsResponse struct {
 	Page  int `json:"_page"`
 	Links struct {

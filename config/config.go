@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -13,10 +14,7 @@ type Config struct {
 	JWTSecret      string
 	AccessTokenTTL time.Duration
 	HTTPAddr       string
-	ClientID       string
-	ClientSecret   string
 	RedirectURI    string
-	BaseUrl        string
 }
 
 //Подгрузка .env и создание конфига
@@ -29,16 +27,15 @@ func Load() *Config {
 		JWTSecret:      getEnv("JWT_SECRET", ""),
 		AccessTokenTTL: time.Minute * 15,
 		HTTPAddr:       getEnv("PORT", ":2020"),
-		ClientID:       getEnv("CLIENT_ID", ""),
-		ClientSecret:   getEnv("CLIENT_SECRET", ""),
 		RedirectURI:    getEnv("REDIRECT_URI", ""),
-		BaseUrl:        getEnv("BASE_URL", ""),
 	}
+
 }
 
 //Получение переменных окружения .env
 func getEnv(key, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists {
+		fmt.Println(value)
 		return value
 	}
 	return defaultValue

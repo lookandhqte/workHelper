@@ -1,14 +1,12 @@
 package v1
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/pkg/auth"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,7 +25,9 @@ func NewAccountRoutes(handler *gin.RouterGroup, uc account.AccountUseCase) {
 	h := handler.Group("/accounts")
 	{
 		h.POST("/", r.createAccount)
+		h.POST("/:id/active", r.makeActiveAccount)
 		h.GET("/", r.getAccounts)
+		h.GET("/active", r.getActiveAccount)
 		h.GET("/:id", r.getAccount)
 		h.GET("/:id/integrations", r.getAccountIntegrations)
 		h.PUT("/:id", r.updateAccount)
@@ -42,36 +42,7 @@ func (r *accountRoutes) createAccount(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := auth.GenerateJWT(account.ID, auth.AccessTokenExpiry)
-	if err != nil {
-		error_Response(c, http.StatusInternalServerError, "failed to generate access token")
-		return
-	}
-
-	refreshToken, err := auth.GenerateJWT(account.ID, auth.RefreshTokenExpiry)
-	if err != nil {
-		error_Response(c, http.StatusInternalServerError, "failed to generate refresh token")
-		return
-	}
-
-	access_exp, err := r.uc.GetConst("access_exp")
-	if err != nil {
-		fmt.Printf("you don't have consts access exp")
-	}
-	refresh_exp, err := r.uc.GetConst("refresh_exp")
-	if err != nil {
-		fmt.Printf("you don't have consts refresh exp")
-	}
-	cache_exp, err := r.uc.GetConst("cache_exp")
-	if err != nil {
-		fmt.Printf("you don't have consts cache")
-	}
-	account.AccessToken = accessToken
-	account.RefreshToken = refreshToken
 	account.CreatedAt = int(time.Now().Unix())
-	account.AccessTokenExpiresIn = account.CreatedAt + access_exp
-	account.RefreshTokenExpiresIn = account.CreatedAt + refresh_exp
-	account.CacheExpires = account.CreatedAt + cache_exp
 
 	if err := r.uc.Create(&account); err != nil {
 		error_Response(c, http.StatusInternalServerError, err.Error())
@@ -79,6 +50,27 @@ func (r *accountRoutes) createAccount(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, account)
+}
+
+func (r *accountRoutes) makeActiveAccount(c *gin.Context) {
+	id, err := strconv.Atoi(c.Query("id"))
+	if err != nil {
+		error_Response(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if err := r.uc.ChangeActiveAccount(id); err != nil {
+		error_Response(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusCreated, id)
+}
+
+func (r *accountRoutes) getActiveAccount(c *gin.Context) {
+
+	acc := r.uc.GetActiveAccount()
+
+	c.JSON(http.StatusCreated, acc)
 }
 
 func (r *accountRoutes) getAccounts(c *gin.Context) {

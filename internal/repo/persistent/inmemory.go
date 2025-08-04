@@ -1,7 +1,13 @@
 package persistent
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"path"
 	"sync"
 	"time"
 
@@ -10,44 +16,32 @@ import (
 )
 
 type MemoryStorage struct {
-	mu            sync.RWMutex
-	accounts      map[int]*entity.Account
-	integrations  map[int]*entity.Integration
-	lastAccountID int
-	cache         *cache.Cache
+	mu                  sync.RWMutex
+	accounts            map[int]*entity.Account
+	integrations        map[int]*entity.Integration
+	active_account      *entity.Account
+	active_integrations map[int]bool
+	lastAccountID       int
+	cache               *cache.Cache
 }
 
 const (
-	BASE_ID_FOR_TOKENS    = 0
-	ACCESS_EXPIRES_SEC    = 86400
-	REFRESH_EXPIRES_SEC   = 2592000
-	CACHE_EXPIRES_SEC     = 604800
-	REFRESH_THRESHOLD_SEC = 3600
+	BASE_ID_FOR_TOKENS  = 0
+	ACCESS_EXPIRES_SEC  = 86400
+	REFRESH_EXPIRES_SEC = 2592000
+	CACHE_EXPIRES_SEC   = 604800
+	BASE_URL            = "https://spetser.amocrm.ru/"
 )
 
 func NewMemoryStorage(c *cache.Cache) *MemoryStorage {
 	return &MemoryStorage{
-		accounts:      make(map[int]*entity.Account),
-		integrations:  make(map[int]*entity.Integration),
-		lastAccountID: 0,
-		cache:         c,
+		accounts:            make(map[int]*entity.Account),
+		integrations:        make(map[int]*entity.Integration),
+		active_account:      &entity.Account{},
+		active_integrations: make(map[int]bool),
+		lastAccountID:       0,
+		cache:               c,
 	}
-}
-
-func (m *MemoryStorage) GetConst(req string) (int, error) {
-	switch req {
-	case "id_tokens":
-		return BASE_ID_FOR_TOKENS, nil
-	case "access_exp":
-		return ACCESS_EXPIRES_SEC, nil
-	case "refresh_exp":
-		return REFRESH_EXPIRES_SEC, nil
-	case "cache_exp":
-		return CACHE_EXPIRES_SEC, nil
-	case "refresh_threshold":
-		return REFRESH_THRESHOLD_SEC, nil
-	}
-	return 0, fmt.Errorf("no such constant")
 }
 
 func (m *MemoryStorage) AddAccount(account *entity.Account) error {
@@ -56,6 +50,8 @@ func (m *MemoryStorage) AddAccount(account *entity.Account) error {
 
 	m.lastAccountID++
 	account.ID = m.lastAccountID
+	account.CacheExpires = account.CreatedAt + CACHE_EXPIRES_SEC
+
 	m.accounts[account.ID] = account
 
 	return nil
@@ -85,6 +81,113 @@ func (m *MemoryStorage) GetAccount(id int) (*entity.Account, error) {
 	return account, nil
 }
 
+func (m *MemoryStorage) Exists(obj interface{}) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	switch v := obj.(type) {
+	case *entity.Account:
+		if v == nil {
+			return false
+		}
+		_, exists := m.accounts[v.ID]
+		return exists
+
+	case entity.Account:
+		_, exists := m.accounts[v.ID]
+		return exists
+
+	case *entity.Integration:
+		if v == nil {
+			return false
+		}
+		_, exists := m.integrations[v.AccountID]
+		return exists
+
+	case entity.Integration:
+		_, exists := m.integrations[v.AccountID]
+		return exists
+
+	default:
+		return false
+	}
+}
+
+func (m *MemoryStorage) GetActiveAccount() *entity.Account {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return m.active_account
+}
+
+func (m *MemoryStorage) GetActiveIntegrations() ([]*entity.Integration, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	integrations := make([]*entity.Integration, 0, len(m.active_integrations))
+
+	for integration, exists := range m.active_integrations {
+		if exists { // && m.integrations[integration].AccountID == m.active_account.ID {
+			integrations = append(integrations, m.integrations[integration])
+		}
+	}
+
+	if len(integrations) == 0 {
+		return nil, fmt.Errorf("no active integrations func: get active integrations")
+	}
+	return integrations, nil
+}
+
+func (m *MemoryStorage) ChangeActiveAccount(new_id int) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if new_id == m.active_account.ID {
+		return fmt.Errorf("this acc is active")
+	}
+	account, err := m.GetAccount(new_id)
+	if err != nil {
+		return err
+	}
+	m.active_account = account
+	return nil
+}
+
+func (m *MemoryStorage) MakeIntegrationActive(new_id int) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	// if m.integrations[new_id].AccountID != m.active_account.ID {
+	// 	return fmt.Errorf("this isn't your integration, make int active err")
+	// }
+	m.active_integrations[new_id] = true
+	return nil
+}
+
+func (m *MemoryStorage) MakeIntegrationInactive(new_id int) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	// if m.integrations[new_id].AccountID != m.active_account.ID {
+	// 	return fmt.Errorf("this isn't your integration, make int inactive err")
+	// }
+	m.active_integrations[new_id] = false
+	return nil
+}
+
+func (m *MemoryStorage) GetIntegration(id int) (*entity.Integration, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	integration, exists := m.integrations[id]
+
+	// if integration.AccountID != m.active_account.ID {
+	// 	return nil, fmt.Errorf("this isn't your integration, get int err")
+	// }
+
+	if !exists {
+		return nil, fmt.Errorf("no integrations with these id")
+	}
+
+	return integration, nil
+
+}
+
 func (m *MemoryStorage) GetAccountWithCache(id int) (*entity.Account, error) {
 	if cached, ok := m.cache.Get(id); ok {
 		return cached.(*entity.Account), nil
@@ -97,6 +200,56 @@ func (m *MemoryStorage) GetAccountWithCache(id int) (*entity.Account, error) {
 
 	m.cache.Set(id, account, time.Hour)
 	return account, nil
+}
+
+func (m *MemoryStorage) GetTokensByAuthCode(code string, client_id string) (*entity.Token, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	integration, err := m.GetIntegrationByClientID(client_id)
+	if err != nil {
+		return nil, fmt.Errorf("error n func get integr by client id -> error in get tokens method")
+	}
+	data := url.Values{}
+	data.Set("client_id", client_id)
+	data.Set("client_secret", integration.SecretKey)
+	data.Set("grant_type", "authorization_code")
+	data.Set("code", code)
+	data.Set("redirect_uri", integration.RedirectUrl)
+	base, err := url.Parse(BASE_URL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid base URL: %v", err)
+	}
+	base.Path = path.Join(base.Path, "/oauth2/access_token")
+	fullURL := base.String()
+
+	req, err := http.NewRequest(http.MethodPost, fullURL, bytes.NewBufferString(data.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusBadRequest {
+		return nil, fmt.Errorf("API error: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	responseData := &entity.Token{}
+	if err := json.Unmarshal(body, responseData); err != nil {
+		return nil, err
+	}
+
+	return responseData, nil
 }
 
 func (m *MemoryStorage) UpdateAccount(account *entity.Account) error {
@@ -126,6 +279,13 @@ func (m *MemoryStorage) DeleteAccount(id int) error {
 func (m *MemoryStorage) AddIntegration(integration *entity.Integration) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if token, exists := m.cache.GetToken(BASE_ID_FOR_TOKENS); exists {
+		integration.Token = token
+	}
+
+	if integration.Token.ServerTime != 0 {
+		m.cache.SetToken(BASE_ID_FOR_TOKENS, integration.Token, time.Duration(ACCESS_EXPIRES_SEC)*time.Second)
+	}
 
 	m.integrations[integration.AccountID] = integration
 	return nil
@@ -141,6 +301,24 @@ func (m *MemoryStorage) GetIntegrations() ([]*entity.Integration, error) {
 	}
 
 	return integrations, nil
+}
+
+func (m *MemoryStorage) GetIntegrationByClientID(client_id string) (*entity.Integration, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var integrationEntity *entity.Integration
+	for _, integration := range m.integrations {
+		if integration.ClientID == client_id {
+			integrationEntity = integration
+		}
+	}
+
+	if integrationEntity.AuthCode == "" {
+		return nil, fmt.Errorf("no such client_id to get intgrations by client_id")
+	}
+
+	return integrationEntity, nil
 }
 
 func (m *MemoryStorage) GetAccountIntegrations(accountID int) (*entity.Integration, error) {
@@ -176,6 +354,7 @@ func (m *MemoryStorage) DeleteIntegration(accountID int) error {
 	}
 
 	delete(m.integrations, accountID)
+	m.cache.DeleteToken(BASE_ID_FOR_TOKENS)
 	return nil
 }
 
@@ -191,7 +370,6 @@ func (m *MemoryStorage) AddTokens(response *entity.Token) error {
 func (m *MemoryStorage) DeleteTokens() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
 	m.cache.DeleteToken(BASE_ID_FOR_TOKENS)
 
 	return nil
@@ -203,16 +381,6 @@ func (m *MemoryStorage) UpdateTokens(response *entity.Token) error {
 
 	m.cache.Set(BASE_ID_FOR_TOKENS, response, time.Duration(ACCESS_EXPIRES_SEC)*time.Second)
 	return nil
-}
-
-func (m *MemoryStorage) GetRefreshToken() (string, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	ref, exists := m.cache.GetToken(BASE_ID_FOR_TOKENS)
-	if !exists {
-		return "", fmt.Errorf("no refresh key in storage")
-	}
-	return ref.RefreshToken, nil
 }
 
 func (m *MemoryStorage) GetTokens() (*entity.Token, error) {

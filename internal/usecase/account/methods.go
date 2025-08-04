@@ -18,8 +18,20 @@ func (uc *AccountUseCase) GetAccountIntegrations(accountID int) (*entity.Integra
 	return uc.repo.GetAccountIntegrations(accountID)
 }
 
-func (uc *AccountUseCase) GetConst(req string) (int, error) {
-	return uc.repo.GetConst(req)
+func (uc *AccountUseCase) GetActiveAccount() *entity.Account {
+	return uc.repo.GetActiveAccount()
+}
+
+func (uc *AccountUseCase) ChangeActiveAccount(new_id int) error {
+	return uc.repo.ChangeActiveAccount(new_id)
+}
+
+func (uc *AccountUseCase) GetAccountWithCache(id int) (*entity.Account, error) {
+	return uc.repo.GetAccountWithCache(id)
+}
+
+func (uc *AccountUseCase) Exists(obj interface{}) bool {
+	return uc.repo.Exists(obj)
 }
 
 func (uc *AccountUseCase) Update(account *entity.Account) error {
