@@ -2,14 +2,10 @@ package entity
 
 //Структура аккаунта
 type Account struct {
-	ID                    int           `json:"id"`
-	AccessToken           string        `json:"access_token"`
-	RefreshToken          string        `json:"refresh_token"`
-	AccessTokenExpiresIn  int           `json:"access_token_expires_in"`
-	RefreshTokenExpiresIn int           `json:"refresh_token_expires_in"`
-	CacheExpires          int           `json:"cache_expires"`
-	CreatedAt             int           `json:"created_at"`
-	Integrations          *Integrations `json:"integrations"`
+	ID           int           `json:"id"`
+	CacheExpires int           `json:"cache_expires"`
+	CreatedAt    int           `json:"created_at"`
+	Integrations *Integrations `json:"integrations"`
 }
 
 type Token struct {

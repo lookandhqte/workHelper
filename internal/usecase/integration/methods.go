@@ -14,16 +14,16 @@ func (uc *IntegrationUseCase) Update(integration *entity.Integration) error {
 	return uc.repo.UpdateIntegration(integration)
 }
 
-func (uc *IntegrationUseCase) CreateTokens(tokens *entity.Token) error {
-	return uc.repo.AddTokens(tokens)
-}
-
 func (uc *IntegrationUseCase) UpdateTokens(tokens *entity.Token) error {
 	return uc.repo.UpdateTokens(tokens)
 }
 
 func (uc *IntegrationUseCase) GetIntegration(id int) (*entity.Integration, error) {
 	return uc.repo.GetIntegration(id)
+}
+
+func (uc *IntegrationUseCase) Exists(obj interface{}) bool {
+	return uc.repo.Exists(obj)
 }
 
 func (uc *IntegrationUseCase) GetTokensByAuthCode(code string, client_id string) (*entity.Token, error) {

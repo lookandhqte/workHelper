@@ -30,6 +30,10 @@ func (uc *AccountUseCase) GetAccountWithCache(id int) (*entity.Account, error) {
 	return uc.repo.GetAccountWithCache(id)
 }
 
+func (uc *AccountUseCase) Exists(obj interface{}) bool {
+	return uc.repo.Exists(obj)
+}
+
 func (uc *AccountUseCase) Update(account *entity.Account) error {
 	return uc.repo.UpdateAccount(account)
 }

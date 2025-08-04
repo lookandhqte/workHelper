@@ -51,8 +51,6 @@ func (m *MemoryStorage) AddAccount(account *entity.Account) error {
 	m.lastAccountID++
 	account.ID = m.lastAccountID
 	account.CacheExpires = account.CreatedAt + CACHE_EXPIRES_SEC
-	account.RefreshTokenExpiresIn = account.CreatedAt + REFRESH_EXPIRES_SEC
-	account.AccessTokenExpiresIn = account.CreatedAt + ACCESS_EXPIRES_SEC
 
 	m.accounts[account.ID] = account
 
@@ -84,7 +82,35 @@ func (m *MemoryStorage) GetAccount(id int) (*entity.Account, error) {
 }
 
 func (m *MemoryStorage) Exists(obj interface{}) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
+	switch v := obj.(type) {
+	case *entity.Account:
+		if v == nil {
+			return false
+		}
+		_, exists := m.accounts[v.ID]
+		return exists
+
+	case entity.Account:
+		_, exists := m.accounts[v.ID]
+		return exists
+
+	case *entity.Integration:
+		if v == nil {
+			return false
+		}
+		_, exists := m.integrations[v.AccountID]
+		return exists
+
+	case entity.Integration:
+		_, exists := m.integrations[v.AccountID]
+		return exists
+
+	default:
+		return false
+	}
 }
 
 func (m *MemoryStorage) GetActiveAccount() *entity.Account {
@@ -100,7 +126,7 @@ func (m *MemoryStorage) GetActiveIntegrations() ([]*entity.Integration, error) {
 	integrations := make([]*entity.Integration, 0, len(m.active_integrations))
 
 	for integration, exists := range m.active_integrations {
-		if exists {
+		if exists && m.integrations[integration].AccountID == m.active_account.ID {
 			integrations = append(integrations, m.integrations[integration])
 		}
 	}
@@ -114,7 +140,9 @@ func (m *MemoryStorage) GetActiveIntegrations() ([]*entity.Integration, error) {
 func (m *MemoryStorage) ChangeActiveAccount(new_id int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
+	if new_id == m.active_account.ID {
+		return fmt.Errorf("this acc is active")
+	}
 	account, err := m.GetAccount(new_id)
 	if err != nil {
 		return err
@@ -126,7 +154,9 @@ func (m *MemoryStorage) ChangeActiveAccount(new_id int) error {
 func (m *MemoryStorage) MakeIntegrationActive(new_id int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
+	if m.integrations[new_id].AccountID != m.active_account.ID {
+		return fmt.Errorf("this isn't your integration, make int active err")
+	}
 	m.active_integrations[new_id] = true
 	return nil
 }
@@ -134,7 +164,9 @@ func (m *MemoryStorage) MakeIntegrationActive(new_id int) error {
 func (m *MemoryStorage) MakeIntegrationInactive(new_id int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
+	if m.integrations[new_id].AccountID != m.active_account.ID {
+		return fmt.Errorf("this isn't your integration, make int inactive err")
+	}
 	m.active_integrations[new_id] = false
 	return nil
 }
@@ -143,6 +175,11 @@ func (m *MemoryStorage) GetIntegration(id int) (*entity.Integration, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	integration, exists := m.integrations[id]
+
+	if integration.AccountID != m.active_account.ID {
+		return nil, fmt.Errorf("this isn't your integration, get int err")
+	}
+
 	if !exists {
 		return nil, fmt.Errorf("no integrations with these id")
 	}
@@ -246,6 +283,10 @@ func (m *MemoryStorage) AddIntegration(integration *entity.Integration) error {
 		integration.Token = token
 	}
 
+	if integration.Token.ServerTime != 0 {
+		m.cache.SetToken(BASE_ID_FOR_TOKENS, integration.Token, time.Duration(ACCESS_EXPIRES_SEC)*time.Second)
+	}
+
 	m.integrations[integration.AccountID] = integration
 	return nil
 }
@@ -340,16 +381,6 @@ func (m *MemoryStorage) UpdateTokens(response *entity.Token) error {
 
 	m.cache.Set(BASE_ID_FOR_TOKENS, response, time.Duration(ACCESS_EXPIRES_SEC)*time.Second)
 	return nil
-}
-
-func (m *MemoryStorage) GetRefreshToken() (string, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	ref, exists := m.cache.GetToken(BASE_ID_FOR_TOKENS)
-	if !exists {
-		return "", fmt.Errorf("no refresh key in storage")
-	}
-	return ref.RefreshToken, nil
 }
 
 func (m *MemoryStorage) GetTokens() (*entity.Token, error) {

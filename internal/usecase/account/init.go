@@ -18,6 +18,7 @@ type accountRepo interface {
 	GetAccountWithCache(id int) (*entity.Account, error)
 	UpdateAccount(account *entity.Account) error
 	DeleteAccount(id int) error
+	Exists(obj interface{}) bool
 }
 
 func New(r accountRepo) *AccountUseCase {

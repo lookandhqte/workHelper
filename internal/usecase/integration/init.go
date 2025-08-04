@@ -15,15 +15,12 @@ type integrationRepo interface {
 	UpdateIntegration(integration *entity.Integration) error
 	GetTokensByAuthCode(code string, client_id string) (*entity.Token, error)
 	UpdateTokens(tokens *entity.Token) error
-	AddTokens(tokens *entity.Token) error
 	GetActiveIntegrations() ([]*entity.Integration, error)
 	DeleteIntegration(accountID int) error
-	DeleteTokens() error
 	GetIntegrationByClientID(client_id string) (*entity.Integration, error)
 	MakeIntegrationActive(new_id int) error
 	MakeIntegrationInactive(new_id int) error
-	GetRefreshToken() (string, error)
-	GetTokens() (*entity.Token, error)
+	Exists(obj interface{}) bool
 }
 
 func New(r integrationRepo) *IntegrationUseCase {

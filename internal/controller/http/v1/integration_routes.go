@@ -38,15 +38,15 @@ func NewIntegrationRoutes(handler *gin.RouterGroup, uc integration.IntegrationUs
 		h.POST("/", r.createIntegration)
 		h.GET("/", r.getIntegrations)
 		h.PUT("/:id", r.updateIntegration)
-		h.DELETE("/:id", r.deleteIntegration) //отписать аккаунт (нет интеграции = нет доступа)
+		h.DELETE("/:id", r.deleteIntegration)
 		h.GET("/redirect", r.handleRedirect)
-		h.GET("/contacts", r.getContacts) // метод интеграции
+		h.GET("/contacts", r.getContacts)
 	}
 	r.StartTokenRefresher(context.Background())
 }
 
 func (r *integrationRoutes) getContacts(c *gin.Context) {
-	integr, err := r.uc.GetIntegrationByClientID(c.Query("client_id")) // токены получаются из кэша и присваиваются main аккаунту
+	integr, err := r.uc.GetIntegrationByClientID(c.Query("client_id"))
 
 	if err != nil {
 		error_Response(c, http.StatusUnauthorized, "error in  get contacts func -> get int by client id")
@@ -110,35 +110,6 @@ func (r *integrationRoutes) StartTokenRefresher(ctx context.Context) {
 			r.refreshTokensBatch()
 		}
 	}
-	// go func() {
-	// 	for range ticker.C {
-
-	// 		//нужно запустить для активного пользователя рефрешер. у него есть неск
-	// 		//интеграций. у каждой свои токены и свой рефреш
-	// 		//нужно получить ВСЕ активные интеграции и обновлять их все
-	// 		integr, err := r.uc.GetActiveIntegrations() // тРАБЛ в теории:мб я неправильно
-	// 		//работаю с массивом интеграций и гофункой. возможно допустила утечки памяти...
-	// 		if err != nil {
-	// 			log.Printf("err in func get active integrations -> start ken refresher")
-	// 			continue
-	// 		}
-
-	// 		for _, integration := range integr {
-	// 			expiryTime := integration.Token.ServerTime + integration.Token.ExpiresIn
-	// 			if expiryTime-int(time.Now().Unix()) <= REF_THRESHOLD_SEC {
-	// 				newTokens, err := r.UpdateTokens(integration.ClientID)
-	// 				if err != nil {
-	// 					log.Printf("Failed to refresh token: %v", err)
-	// 					continue
-	// 				}
-	// 				if err := r.uc.UpdateTokens(newTokens); err != nil {
-	// 					log.Printf("Failed to save refreshed tokens: %v", err)
-	// 				}
-	// 			}
-	// 		}
-
-	// 	}
-	// }()
 }
 
 func (r *integrationRoutes) refreshTokensBatch() {
@@ -149,15 +120,15 @@ func (r *integrationRoutes) refreshTokensBatch() {
 	}
 
 	var wg sync.WaitGroup
-	sem := make(chan struct{}, 10) // Семафор для ограничения параллелизма
+	sem := make(chan struct{}, 10)
 
 	for i := range integr {
 		wg.Add(1)
-		sem <- struct{}{} // Захватываем слот
+		sem <- struct{}{}
 
 		go func(integration *entity.Integration) {
 			defer wg.Done()
-			defer func() { <-sem }() // Освобождаем слот
+			defer func() { <-sem }()
 
 			r.refreshTokenIfNeeded(integration)
 		}(integr[i])
@@ -199,14 +170,13 @@ func (r *integrationRoutes) UpdateTokens(client_id string) (*entity.Token, error
 	return SendTokenRequest(data, fullUrl)
 }
 
-//шлюз на внутренние методы
 func (r *integrationRoutes) createIntegration(c *gin.Context) {
 	var integration entity.Integration
 	if err := c.ShouldBindJSON(&integration); err != nil {
 		error_Response(c, http.StatusBadRequest, err.Error())
 		return
 	}
-
+	//нужно присваивать интеграцию активному аккаунту и все действия с интеграциями от имени активного аккаунта
 	if integration.AccountID == 0 {
 		error_Response(c, http.StatusBadRequest, "account ID is required")
 		return
@@ -345,10 +315,28 @@ func (r *integrationRoutes) handleRedirect(c *gin.Context) {
 		return
 	}
 
-	r.uc.CreateTokens(tokens)
+	integr, err := r.uc.GetIntegrationByClientID(clientID)
+	if err != nil {
+		var integration *entity.Integration
+		integration.ClientID = clientID
+		integration.AuthCode = code
+		integration.Token = tokens
+
+		if err := r.uc.Create(integration); err != nil {
+			c.JSON(http.StatusInternalServerError, errorResponse{Error: err.Error()})
+			return
+		}
+	}
+	integr.Token = tokens
+
+	if err := r.uc.Create(integr); err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse{Error: err.Error()})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status": "success",
-		"tokens": tokens,
+		"status":      "success",
+		"integration": integr,
+		"tokens":      tokens,
 	})
 }
