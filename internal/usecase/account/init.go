@@ -13,9 +13,12 @@ type accountRepo interface {
 	GetAccounts() ([]*entity.Account, error)
 	GetAccount(id int) (*entity.Account, error)
 	GetAccountIntegrations(accountID int) (*entity.Integration, error)
+	GetMainAccount() *entity.Account
+	GetMainAccountTokens() *entity.Token
+	ChangeMainAccount(new_id int) error
 	UpdateAccount(account *entity.Account) error
+	UpdateAccountTokens(tokens *entity.Token) error
 	DeleteAccount(id int) error
-	GetConst(req string) (int, error)
 }
 
 func New(r accountRepo) *AccountUseCase {
