@@ -126,7 +126,7 @@ func (m *MemoryStorage) GetActiveIntegrations() ([]*entity.Integration, error) {
 	integrations := make([]*entity.Integration, 0, len(m.active_integrations))
 
 	for integration, exists := range m.active_integrations {
-		if exists && m.integrations[integration].AccountID == m.active_account.ID {
+		if exists { // && m.integrations[integration].AccountID == m.active_account.ID {
 			integrations = append(integrations, m.integrations[integration])
 		}
 	}
@@ -154,9 +154,9 @@ func (m *MemoryStorage) ChangeActiveAccount(new_id int) error {
 func (m *MemoryStorage) MakeIntegrationActive(new_id int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if m.integrations[new_id].AccountID != m.active_account.ID {
-		return fmt.Errorf("this isn't your integration, make int active err")
-	}
+	// if m.integrations[new_id].AccountID != m.active_account.ID {
+	// 	return fmt.Errorf("this isn't your integration, make int active err")
+	// }
 	m.active_integrations[new_id] = true
 	return nil
 }
@@ -164,9 +164,9 @@ func (m *MemoryStorage) MakeIntegrationActive(new_id int) error {
 func (m *MemoryStorage) MakeIntegrationInactive(new_id int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if m.integrations[new_id].AccountID != m.active_account.ID {
-		return fmt.Errorf("this isn't your integration, make int inactive err")
-	}
+	// if m.integrations[new_id].AccountID != m.active_account.ID {
+	// 	return fmt.Errorf("this isn't your integration, make int inactive err")
+	// }
 	m.active_integrations[new_id] = false
 	return nil
 }
@@ -176,9 +176,9 @@ func (m *MemoryStorage) GetIntegration(id int) (*entity.Integration, error) {
 	defer m.mu.Unlock()
 	integration, exists := m.integrations[id]
 
-	if integration.AccountID != m.active_account.ID {
-		return nil, fmt.Errorf("this isn't your integration, get int err")
-	}
+	// if integration.AccountID != m.active_account.ID {
+	// 	return nil, fmt.Errorf("this isn't your integration, get int err")
+	// }
 
 	if !exists {
 		return nil, fmt.Errorf("no integrations with these id")
