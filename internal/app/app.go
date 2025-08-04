@@ -10,14 +10,19 @@ import (
 	"time"
 )
 
-// App представляет основное приложение
 type App struct {
-	server *http.Server
+	server          *http.Server
+	backgroundTasks []BackgroundTask
 }
 
-// New создает новое приложение
 func New() *App {
 	return &App{}
+}
+
+type BackgroundTask func(ctx context.Context)
+
+func (a *App) AddBackgroundTask(task BackgroundTask) {
+	a.backgroundTasks = append(a.backgroundTasks, task)
 }
 
 // Run запускает приложение

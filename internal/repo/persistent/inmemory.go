@@ -82,8 +82,8 @@ func (m *MemoryStorage) GetAccount(id int) (*entity.Account, error) {
 }
 
 func (m *MemoryStorage) Exists(obj interface{}) bool {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	switch v := obj.(type) {
 	case *entity.Account:

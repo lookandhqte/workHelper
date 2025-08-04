@@ -11,14 +11,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// dependencies содержит все зависимости приложения
 type dependencies struct {
 	cfg           *config.Config
 	AccountUC     *accountUC.AccountUseCase
 	IntegrationUC *integrationUC.IntegrationUseCase
 }
 
-// composeDependencies инициализирует все зависимости
 func composeDependencies() *dependencies {
 	cfg := config.Load()
 	memoryCache := cache.NewCache()
@@ -31,7 +29,6 @@ func composeDependencies() *dependencies {
 	}
 }
 
-// setupRouter настраивает маршруты приложения
 func setupRouter(deps *dependencies) *gin.Engine {
 	router := gin.Default()
 

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -28,11 +29,13 @@ func Load() *Config {
 		HTTPAddr:       getEnv("PORT", ":2020"),
 		RedirectURI:    getEnv("REDIRECT_URI", ""),
 	}
+
 }
 
 //Получение переменных окружения .env
 func getEnv(key, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists {
+		fmt.Println(value)
 		return value
 	}
 	return defaultValue

@@ -42,7 +42,7 @@ func NewIntegrationRoutes(handler *gin.RouterGroup, uc integration.IntegrationUs
 		h.GET("/redirect", r.handleRedirect)
 		h.GET("/contacts", r.getContacts)
 	}
-	r.StartTokenRefresher(context.Background())
+	//r.StartTokenRefresher(context.Background())
 }
 
 func (r *integrationRoutes) getContacts(c *gin.Context) {
@@ -125,7 +125,11 @@ func (r *integrationRoutes) refreshTokensBatch() {
 	for i := range integr {
 		wg.Add(1)
 		sem <- struct{}{}
-
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("Panic in token refresh: %v", r)
+			}
+		}()
 		go func(integration *entity.Integration) {
 			defer wg.Done()
 			defer func() { <-sem }()
