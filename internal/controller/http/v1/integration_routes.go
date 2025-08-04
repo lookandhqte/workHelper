@@ -125,11 +125,7 @@ func (r *integrationRoutes) refreshTokensBatch() {
 	for i := range integr {
 		wg.Add(1)
 		sem <- struct{}{}
-		defer func() {
-			if r := recover(); r != nil {
-				log.Printf("Panic in token refresh: %v", r)
-			}
-		}()
+
 		go func(integration *entity.Integration) {
 			defer wg.Done()
 			defer func() { <-sem }()
