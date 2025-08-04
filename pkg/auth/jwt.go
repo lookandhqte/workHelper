@@ -8,22 +8,19 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-// Константы времени жизни токенов
 const (
 	AccessTokenExpiry  = 86400 * time.Second
 	RefreshTokenExpiry = 2592000 * time.Second
-	SecretKey          = "amocrm_meow" // Дефолтный секретный ключ (переопределяется из .env)
+	SecretKey          = "amocrm_meow"
 )
 
 var cfg = config.Load()
 
-// Структура для хранения данных в JWT токене
 type Claims struct {
 	AccountID int `json:"account_id"`
 	jwt.RegisteredClaims
 }
 
-// Создает новый JWT токен
 func GenerateJWT(accountID int, expiry time.Duration) (string, error) {
 
 	claims := &Claims{
@@ -37,14 +34,13 @@ func GenerateJWT(accountID int, expiry time.Duration) (string, error) {
 	return token.SignedString([]byte(cfg.JWTSecret))
 }
 
-// ParseJWT разбирает и валидирует JWT токен
 func ParseJWT(tokenString string) (*Claims, error) {
 
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		&Claims{},
 		func(token *jwt.Token) (interface{}, error) {
-			return []byte(cfg.JWTSecret), nil // Используем секрет из конфига
+			return []byte(cfg.JWTSecret), nil
 		},
 	)
 
