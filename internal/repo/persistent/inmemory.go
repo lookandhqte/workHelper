@@ -16,13 +16,13 @@ import (
 )
 
 type MemoryStorage struct {
-	mu               sync.RWMutex
-	accounts         map[int]*entity.Account
-	integrations     map[int]*entity.Integration
-	main_account     *entity.Account
-	main_integration *entity.Integration
-	lastAccountID    int
-	cache            *cache.Cache
+	mu                  sync.RWMutex
+	accounts            map[int]*entity.Account
+	integrations        map[int]*entity.Integration
+	active_account      *entity.Account
+	active_integrations map[int]bool
+	lastAccountID       int
+	cache               *cache.Cache
 }
 
 const (
@@ -35,10 +35,12 @@ const (
 
 func NewMemoryStorage(c *cache.Cache) *MemoryStorage {
 	return &MemoryStorage{
-		accounts:      make(map[int]*entity.Account),
-		integrations:  make(map[int]*entity.Integration),
-		lastAccountID: 0,
-		cache:         c,
+		accounts:            make(map[int]*entity.Account),
+		integrations:        make(map[int]*entity.Integration),
+		active_account:      &entity.Account{},
+		active_integrations: make(map[int]bool),
+		lastAccountID:       0,
+		cache:               c,
 	}
 }
 
@@ -81,21 +83,35 @@ func (m *MemoryStorage) GetAccount(id int) (*entity.Account, error) {
 	return account, nil
 }
 
-func (m *MemoryStorage) GetMainAccount() *entity.Account {
+func (m *MemoryStorage) Exists(obj interface{}) bool {
+
+}
+
+func (m *MemoryStorage) GetActiveAccount() *entity.Account {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	return m.main_account
+	return m.active_account
 }
 
-func (m *MemoryStorage) GetMainIntegration() *entity.Integration {
+func (m *MemoryStorage) GetActiveIntegrations() ([]*entity.Integration, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	integrations := make([]*entity.Integration, 0, len(m.active_integrations))
 
-	return m.main_integration
+	for integration, exists := range m.active_integrations {
+		if exists {
+			integrations = append(integrations, m.integrations[integration])
+		}
+	}
+
+	if len(integrations) == 0 {
+		return nil, fmt.Errorf("no active integrations func: get active integrations")
+	}
+	return integrations, nil
 }
 
-func (m *MemoryStorage) ChangeMainAccount(new_id int) error {
+func (m *MemoryStorage) ChangeActiveAccount(new_id int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -103,25 +119,29 @@ func (m *MemoryStorage) ChangeMainAccount(new_id int) error {
 	if err != nil {
 		return err
 	}
-	m.main_account = account
+	m.active_account = account
 	return nil
 }
 
-func (m *MemoryStorage) ChangeMainIntegration(new_id int) error {
+func (m *MemoryStorage) MakeIntegrationActive(new_id int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	integration, err := m.GetIntegration(new_id)
-	if err != nil {
-		return err
-	}
-	m.main_integration = integration
+	m.active_integrations[new_id] = true
+	return nil
+}
+
+func (m *MemoryStorage) MakeIntegrationInactive(new_id int) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.active_integrations[new_id] = false
 	return nil
 }
 
 func (m *MemoryStorage) GetIntegration(id int) (*entity.Integration, error) {
 	m.mu.Lock()
-	m.mu.Unlock()
+	defer m.mu.Unlock()
 	integration, exists := m.integrations[id]
 	if !exists {
 		return nil, fmt.Errorf("no integrations with these id")
@@ -129,18 +149,6 @@ func (m *MemoryStorage) GetIntegration(id int) (*entity.Integration, error) {
 
 	return integration, nil
 
-}
-
-func (m *MemoryStorage) GetMainAccountTokens() *entity.Token {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	var tokens *entity.Token
-	tokens.AccessToken = m.main_account.AccessToken
-	tokens.RefreshToken = m.main_account.RefreshToken
-	tokens.ExpiresIn = m.main_account.RefreshTokenExpiresIn
-
-	return tokens
 }
 
 func (m *MemoryStorage) GetAccountWithCache(id int) (*entity.Account, error) {
@@ -160,7 +168,7 @@ func (m *MemoryStorage) GetAccountWithCache(id int) (*entity.Account, error) {
 func (m *MemoryStorage) GetTokensByAuthCode(code string, client_id string) (*entity.Token, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	integration, err := m.GetIntegrationsByClientID(client_id)
+	integration, err := m.GetIntegrationByClientID(client_id)
 	if err != nil {
 		return nil, fmt.Errorf("error n func get integr by client id -> error in get tokens method")
 	}
@@ -219,18 +227,6 @@ func (m *MemoryStorage) UpdateAccount(account *entity.Account) error {
 	return nil
 }
 
-func (m *MemoryStorage) UpdateAccountTokens(tokens *entity.Token) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.main_account.AccessToken = tokens.AccessToken
-	m.main_account.AccessTokenExpiresIn = int(time.Now().Unix()) + ACCESS_EXPIRES_SEC
-	m.main_account.RefreshToken = tokens.RefreshToken
-
-	m.accounts[m.main_account.ID] = m.main_account
-	return nil
-}
-
 func (m *MemoryStorage) DeleteAccount(id int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -246,6 +242,9 @@ func (m *MemoryStorage) DeleteAccount(id int) error {
 func (m *MemoryStorage) AddIntegration(integration *entity.Integration) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if token, exists := m.cache.GetToken(BASE_ID_FOR_TOKENS); exists {
+		integration.Token = token
+	}
 
 	m.integrations[integration.AccountID] = integration
 	return nil
@@ -263,7 +262,7 @@ func (m *MemoryStorage) GetIntegrations() ([]*entity.Integration, error) {
 	return integrations, nil
 }
 
-func (m *MemoryStorage) GetIntegrationsByClientID(client_id string) (*entity.Integration, error) {
+func (m *MemoryStorage) GetIntegrationByClientID(client_id string) (*entity.Integration, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -314,6 +313,7 @@ func (m *MemoryStorage) DeleteIntegration(accountID int) error {
 	}
 
 	delete(m.integrations, accountID)
+	m.cache.DeleteToken(BASE_ID_FOR_TOKENS)
 	return nil
 }
 
@@ -329,7 +329,6 @@ func (m *MemoryStorage) AddTokens(response *entity.Token) error {
 func (m *MemoryStorage) DeleteTokens() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
 	m.cache.DeleteToken(BASE_ID_FOR_TOKENS)
 
 	return nil

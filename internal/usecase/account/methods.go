@@ -18,24 +18,20 @@ func (uc *AccountUseCase) GetAccountIntegrations(accountID int) (*entity.Integra
 	return uc.repo.GetAccountIntegrations(accountID)
 }
 
+func (uc *AccountUseCase) GetActiveAccount() *entity.Account {
+	return uc.repo.GetActiveAccount()
+}
+
+func (uc *AccountUseCase) ChangeActiveAccount(new_id int) error {
+	return uc.repo.ChangeActiveAccount(new_id)
+}
+
+func (uc *AccountUseCase) GetAccountWithCache(id int) (*entity.Account, error) {
+	return uc.repo.GetAccountWithCache(id)
+}
+
 func (uc *AccountUseCase) Update(account *entity.Account) error {
 	return uc.repo.UpdateAccount(account)
-}
-
-func (uc *AccountUseCase) ChangeMainAccount(new_id int) error {
-	return uc.repo.ChangeMainAccount(new_id)
-}
-
-func (uc *AccountUseCase) GetMainAccountTokens() *entity.Token {
-	return uc.repo.GetMainAccountTokens()
-}
-
-func (uc *AccountUseCase) GetMainAccount() *entity.Account {
-	return uc.repo.GetMainAccount()
-}
-
-func (uc *AccountUseCase) UpdateAccountTokens(tokens *entity.Token) error {
-	return uc.repo.UpdateAccountTokens(tokens)
 }
 
 func (uc *AccountUseCase) Delete(id int) error {

@@ -30,10 +30,21 @@ func (uc *IntegrationUseCase) GetTokensByAuthCode(code string, client_id string)
 	return uc.repo.GetTokensByAuthCode(code, client_id)
 }
 
-func (uc *IntegrationUseCase) GetMainIntegration() *entity.Integration {
-	return uc.repo.GetMainIntegration()
+func (uc *IntegrationUseCase) GetActiveIntegrations() ([]*entity.Integration, error) {
+	return uc.repo.GetActiveIntegrations()
 }
 
 func (uc *IntegrationUseCase) Delete(id int) error {
 	return uc.repo.DeleteIntegration(id)
+}
+
+func (uc *IntegrationUseCase) GetIntegrationByClientID(client_id string) (*entity.Integration, error) {
+	return uc.repo.GetIntegrationByClientID(client_id)
+}
+func (uc *IntegrationUseCase) MakeIntegrationActive(new_id int) error {
+	return uc.repo.MakeIntegrationActive(new_id)
+}
+
+func (uc *IntegrationUseCase) MakeIntegrationInactive(new_id int) error {
+	return uc.repo.MakeIntegrationInactive(new_id)
 }
