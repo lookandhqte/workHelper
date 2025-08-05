@@ -4,11 +4,16 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
+	"path"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
+
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 )
 
 type App struct {
@@ -18,6 +23,10 @@ type App struct {
 	shutdownCtx context.Context
 	cancel      context.CancelFunc
 }
+
+const (
+	REF_THRESHOLD_SEC = 3600
+)
 
 func New() *App {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -72,7 +81,55 @@ func (a *App) Run() {
 		}
 	})
 
-	a.AddTask(deps.IntegrationUC.Start(&a.wg))
+	a.AddTask(func(ctx context.Context) {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				integrationsPtr, err := deps.IntegrationUC.Return()
+				if err != nil {
+					log.Printf("Failed to get active integrations: %v", err)
+					return
+				}
+
+				sem := make(chan struct{}, 10)
+				integrations := *integrationsPtr
+				for i := range integrations {
+					a.wg.Add(1)
+					sem <- struct{}{}
+
+					go func(integration *entity.Integration) {
+						defer a.wg.Done()
+						defer func() { <-sem }()
+
+						expiryTime := integration.Token.ServerTime + integration.Token.ExpiresIn
+						now := time.Now().Unix()
+
+						if expiryTime-int(now) <= REF_THRESHOLD_SEC {
+
+							idOfAcc := strconv.Itoa(integration.AccountID)
+							base, _ := url.Parse("http://localhost:2020/v1/integrations/")
+							base.Path = path.Join(base.Path, idOfAcc)
+							base.Path = path.Join(base.Path, "/refresh")
+							fullURL := base.String()
+							req, _ := http.NewRequest(http.MethodPost, fullURL, nil)
+							client := &http.Client{}
+							resp, _ := client.Do(req)
+							if resp.StatusCode != http.StatusAccepted {
+								log.Println("could not do req for updating refresh token")
+							}
+						}
+					}(&integrations[i])
+				}
+
+				a.wg.Wait()
+			case <-ctx.Done():
+				log.Println("Token refresher stopped")
+				return
+			}
+		}
+	})
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)

@@ -34,6 +34,8 @@ func GenerateJWT(accountID int, expiry time.Duration) (string, error) {
 	return token.SignedString([]byte(cfg.JWTSecret))
 }
 
+//добавить функцию шифрования токенов
+
 func ParseJWT(tokenString string) (*Claims, error) {
 
 	token, err := jwt.ParseWithClaims(

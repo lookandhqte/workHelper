@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -52,11 +53,10 @@ func (r *accountRoutes) createAccount(c *gin.Context) {
 }
 
 func (r *accountRoutes) makeActiveAccount(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Query("id"))
-	// if err != nil {
-	// 	error_Response(c, http.StatusInternalServerError, err.Error())
-	// 	return
-	// }
+	id, err := strconv.Atoi(c.Query("id"))
+	if err != nil {
+		fmt.Println(err)
+	}
 	if err := r.uc.ChangeActiveAccount(id); err != nil {
 		error_Response(c, http.StatusInternalServerError, err.Error())
 		return

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -17,15 +18,17 @@ import (
 )
 
 type integrationRoutes struct {
-	uc integration.IntegrationUseCase
+	uc     integration.IntegrationUseCase
+	client *http.Client
 }
 
 const (
-	BASE_URL = "https://spetser.amocrm.ru/"
+	BASE_URL          = "https://spetser.amocrm.ru/"
+	REF_THRESHOLD_SEC = 3600
 )
 
-func NewIntegrationRoutes(handler *gin.RouterGroup, uc integration.IntegrationUseCase) {
-	r := &integrationRoutes{uc}
+func NewIntegrationRoutes(handler *gin.RouterGroup, uc integration.IntegrationUseCase, client *http.Client) {
+	r := &integrationRoutes{uc: uc, client: client}
 
 	h := handler.Group("/integrations")
 	{
@@ -35,34 +38,45 @@ func NewIntegrationRoutes(handler *gin.RouterGroup, uc integration.IntegrationUs
 		h.DELETE("/:account_id", r.deleteIntegration)
 		h.GET("/redirect", r.handleRedirect)
 		h.GET("/:account_id/contacts", r.getContacts)
+		h.POST("/:account_id/refresh", r.needToRef)
 	}
 }
 
 //Проблемы:
-//интеграция не присваивается аккаунту по id
-//у интеграции есть лишние поля
-//конвертация id идет криво.
 //контакты не сохраняются конкретной интеграции (по логике они после этого должны высасываться аккаунтом)
+//токены не шифруются
+func (r *integrationRoutes) needToRef(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Query("account_id"))
+	integration, _ := r.uc.GetIntegration(id)
+	newTokens, err := r.UpdateTokens(integration.ClientID)
+	if err != nil {
+		log.Printf("[Acc:%d] Failed to refresh token: %v", integration.AccountID, err)
+		return
+	}
+	//Нужно будет добавить шифрование токенов из auth.
+	//добавить на этом этапе шифрование токенов
+	integration.Token = newTokens
 
+	if err := r.uc.Update(integration); err != nil {
+		log.Printf("[Acc:%d] Failed to save tokens: %v", integration.AccountID, err)
+	}
+}
 func (r *integrationRoutes) getContacts(c *gin.Context) {
-	// id, err := strconv.Atoi(c.Query("account_id"))
+	id, _ := strconv.Atoi(c.Query("account_id"))
 
-	// if err != nil {
-	// 	fmt.Println("no account id")
-	// }
-	integr, err := r.uc.GetIntegration(1)
+	integration, err := r.uc.GetIntegration(id)
 
 	if err != nil {
 		error_Response(c, http.StatusUnauthorized, "error in  get contacts func -> get int by client id")
 		return
 	}
 
-	if integr.Token.AccessToken == "" {
+	if integration.Token.AccessToken == "" {
 		error_Response(c, http.StatusUnauthorized, "access token missing")
 		return
 	}
 
-	contacts, err := r.uc.GetContacts(integr.Token.AccessToken)
+	contacts, err := r.GetContacts(integration.Token.AccessToken)
 	if err != nil {
 		error_Response(c, http.StatusInternalServerError, err.Error())
 		return
@@ -81,7 +95,6 @@ func (r *integrationRoutes) createIntegration(c *gin.Context) {
 		error_Response(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	//нужно присваивать интеграцию активному аккаунту и все действия с интеграциями от имени активного аккаунта
 	if integration.AccountID == 0 {
 		error_Response(c, http.StatusBadRequest, "account ID is required")
 		return
@@ -96,7 +109,7 @@ func (r *integrationRoutes) createIntegration(c *gin.Context) {
 }
 
 func (r *integrationRoutes) getIntegrations(c *gin.Context) {
-	integrations, err := r.uc.Return(nil)
+	integrations, err := r.uc.Return()
 	if err != nil {
 		error_Response(c, http.StatusInternalServerError, err.Error())
 		return
@@ -156,59 +169,70 @@ func (r *integrationRoutes) handleRedirect(c *gin.Context) {
 		return
 	}
 
-	integr, err := r.uc.GetIntegrationByClientID(clientID)
+	integration_id, err := r.uc.ReturnByClientID(clientID)
 	if err != nil {
-		var integration *entity.Integration
-		integration.ClientID = clientID
-		integration.AuthCode = code
-		integration.Token = tokens
-
-		if err := r.uc.Create(integration); err != nil {
-			c.JSON(http.StatusInternalServerError, errorResponse{Error: err.Error()})
-			return
-		}
+		c.JSON(http.StatusInternalServerError, errorResponse{Error: err.Error()})
+		return
 	}
-	integr.Token = tokens
 
-	if err := r.uc.Create(integr); err != nil {
+	integration, err := r.uc.GetIntegration(integration_id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse{Error: err.Error()})
+		return
+	}
+
+	integration.Token = tokens
+
+	if err := r.uc.Create(integration); err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse{Error: err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":      "success",
-		"integration": integr,
+		"integration": integration,
 		"tokens":      tokens,
 	})
 }
 
-func (m *integrationRoutes) GetTokensByAuthCode(code string, client_id string) (*entity.Token, error) {
+func (r *integrationRoutes) PrepareData(datacase string, integration *entity.Integration, code string, client_id string) url.Values {
+	data := url.Values{}
+	switch datacase {
+	case "authorization_code":
+		data.Set("client_id", client_id)
+		data.Set("client_secret", integration.SecretKey)
+		data.Set("grant_type", "authorization_code")
+		data.Set("code", code)
+		data.Set("redirect_uri", integration.RedirectUrl)
+	case "refresh_token":
+		data.Set("client_id", client_id)
+		data.Set("client_secret", integration.SecretKey)
+		data.Set("grant_type", "refresh_token")
+		data.Set("refresh_token", integration.Token.RefreshToken)
+		data.Set("redirect_uri", integration.RedirectUrl)
+	}
+	return data
+}
 
-	integration, err := m.uc.GetIntegrationByClientID(client_id)
+func (r *integrationRoutes) GetTokensByAuthCode(code string, client_id string) (*entity.Token, error) {
+
+	integration_id, err := r.uc.ReturnByClientID(client_id)
 	if err != nil {
 		return nil, fmt.Errorf("error n func get integr by client id -> error in get tokens method")
 	}
-	data := url.Values{}
-	data.Set("client_id", client_id)
-	data.Set("client_secret", integration.SecretKey)
-	data.Set("grant_type", "authorization_code")
-	data.Set("code", code)
-	data.Set("redirect_uri", integration.RedirectUrl)
-	base, err := url.Parse(BASE_URL)
+	integration, err := r.uc.GetIntegration(integration_id)
 	if err != nil {
-		return nil, fmt.Errorf("invalid base URL: %v", err)
+		return nil, fmt.Errorf("error in get integeation -> get tokens by auth code")
 	}
-	base.Path = path.Join(base.Path, "/oauth2/access_token")
-	fullURL := base.String()
 
-	req, err := http.NewRequest(http.MethodPost, fullURL, bytes.NewBufferString(data.Encode()))
+	data := r.PrepareData("authorization_code", integration, code, client_id)
+
+	fullurl := r.MakeRouteURL("/oauth2/access_token")
+	req, err := r.PreparePostRequest(fullurl, data)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := r.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -229,4 +253,110 @@ func (m *integrationRoutes) GetTokensByAuthCode(code string, client_id string) (
 	}
 
 	return responseData, nil
+}
+
+func (r *integrationRoutes) UpdateTokens(client_id string) (*entity.Token, error) {
+	integration_id, err := r.uc.ReturnByClientID(client_id)
+	if err != nil {
+		fmt.Print("error in func update tokens -> return by client id")
+	}
+
+	integration, err := r.uc.GetIntegration(integration_id)
+	if err != nil {
+		fmt.Print("error in func update tokens -> get integation")
+	}
+
+	data := r.PrepareData("refresh_token", integration, "", client_id)
+
+	fullUrl := r.MakeRouteURL(BASE_URL)
+	return r.SendTokenRequest(data, fullUrl)
+}
+
+func (r *integrationRoutes) GetContacts(token string) (*ContactsResponse, error) {
+	fullURL := r.MakeRouteURL("/api/v4/contacts")
+
+	req, err := http.NewRequest(http.MethodGet, fullURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %v", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+token)
+	req.Header.Add("Content-Type", "application/json")
+
+	body, err := r.SendRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("error while sending request to get contacts")
+	}
+
+	var apiResponse APIContactsResponse
+
+	if err := json.Unmarshal(body, &apiResponse); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
+	}
+
+	return apiResponse.ToContactsResponse(), nil
+
+}
+
+func (r *integrationRoutes) MakeRouteURL(pathi string) string {
+	base, _ := url.Parse(BASE_URL)
+
+	base.Path = path.Join(base.Path, pathi)
+	fullURL := base.String()
+	return fullURL
+}
+
+func (r *integrationRoutes) PreparePostRequest(url string, data url.Values) (*http.Request, error) {
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBufferString(data.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	return req, nil
+}
+
+func (r *integrationRoutes) SendRequest(req *http.Request) ([]byte, error) {
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusBadRequest {
+		return nil, fmt.Errorf("API error: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	return body, nil
+}
+
+func (r *integrationRoutes) ParseTokenResponse(body []byte) (*entity.Token, error) {
+	responseData := &entity.Token{}
+	if err := json.Unmarshal(body, responseData); err != nil {
+		return nil, err
+	}
+	return responseData, nil
+}
+
+func (r *integrationRoutes) SendTokenRequest(data url.Values, url string) (*entity.Token, error) {
+	req, err := r.PreparePostRequest(url, data)
+	if err != nil {
+		return nil, fmt.Errorf("request preparation failed: %v", err)
+	}
+
+	body, err := r.SendRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %v", err)
+	}
+
+	token, err := r.ParseTokenResponse(body)
+	if err != nil {
+		return nil, fmt.Errorf("response parsing failed: %v", err)
+	}
+
+	return token, nil
 }
