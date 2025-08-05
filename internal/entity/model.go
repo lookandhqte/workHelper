@@ -2,10 +2,11 @@ package entity
 
 //Структура аккаунта
 type Account struct {
-	ID           int            `json:"id"`
-	CacheExpires int            `json:"cache_expires"`
-	CreatedAt    int            `json:"created_at"`
-	Integrations *[]Integration `json:"integrations"`
+	ID              int            `json:"id"`
+	CacheExpires    int            `json:"cache_expires"`
+	CreatedAt       int            `json:"created_at"`
+	Integrations    *[]Integration `json:"integrations"`
+	AccountContacts *[]Contact     `json:"contacts"`
 }
 
 type Token struct {
@@ -25,11 +26,10 @@ type Contact struct {
 
 //Структура интеграции
 type Integration struct {
-	AccountID       int        `json:"account_id"`
-	SecretKey       string     `json:"secret_key"`
-	ClientID        string     `json:"client_id"`
-	RedirectUrl     string     `json:"redirect_url"`
-	AuthCode        string     `json:"auth_code"`
-	Token           *Token     `json:"integration_tokens"`
-	AccountContacts *[]Contact `json:"account_contacts"`
+	AccountID   int    `json:"account_id"`
+	SecretKey   string `json:"secret_key"`
+	ClientID    string `json:"client_id"`
+	RedirectUrl string `json:"redirect_url"`
+	AuthCode    string `json:"auth_code"`
+	Token       *Token `json:"integration_tokens"`
 }
