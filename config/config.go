@@ -15,6 +15,8 @@ type Config struct {
 	AccessTokenTTL time.Duration
 	HTTPAddr       string
 	RedirectURI    string
+	DSN            string
+	StorageType    string
 }
 
 //Подгрузка .env и создание конфига
@@ -28,6 +30,8 @@ func Load() *Config {
 		AccessTokenTTL: time.Minute * 15,
 		HTTPAddr:       getEnv("PORT", ":2020"),
 		RedirectURI:    getEnv("REDIRECT_URI", ""),
+		DSN:            getEnv("DSN", ""),
+		StorageType:    getEnv("STORAGE_TYPE", "in-memory"),
 	}
 
 }

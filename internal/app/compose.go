@@ -3,7 +3,7 @@ package app
 import (
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
 	controllerhttp "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/controller/http"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/repo/persistent"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/repo"
 	accountUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
 	integrationUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/integration"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/pkg/cache"
@@ -20,12 +20,13 @@ type dependencies struct {
 func composeDependencies() *dependencies {
 	cfg := config.Load()
 	memoryCache := cache.NewCache()
-	storage := persistent.NewMemoryStorage(memoryCache)
+
+	storage := repo.NewStorage(memoryCache, cfg)
 
 	return &dependencies{
 		cfg:           cfg,
-		AccountUC:     accountUC.New(storage),
-		IntegrationUC: integrationUC.New(storage),
+		AccountUC:     accountUC.New(*storage),
+		IntegrationUC: integrationUC.New(*storage),
 	}
 }
 

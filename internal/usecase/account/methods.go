@@ -18,10 +18,6 @@ func (uc *AccountUseCase) GetAccountIntegrations(accountID int) (*entity.Integra
 	return uc.repo.GetAccountIntegrations(accountID)
 }
 
-func (uc *AccountUseCase) ChangeActiveAccount(new_id int) error {
-	return uc.repo.ChangeActiveAccount(new_id)
-}
-
 func (uc *AccountUseCase) Update(account *entity.Account) error {
 	return uc.repo.UpdateAccount(account)
 }

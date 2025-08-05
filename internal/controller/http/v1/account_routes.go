@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -26,7 +25,6 @@ func NewAccountRoutes(handler *gin.RouterGroup, uc account.AccountUseCase) {
 	h := handler.Group("/accounts")
 	{
 		h.POST("/", r.createAccount)
-		h.POST("/:id/active", r.makeActiveAccount)
 		h.GET("/", r.getAccounts)
 		h.GET("/:id", r.getAccount)
 		h.GET("/:id/integrations", r.getAccountIntegrations)
@@ -51,20 +49,6 @@ func (r *accountRoutes) createAccount(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, account)
 }
-
-func (r *accountRoutes) makeActiveAccount(c *gin.Context) {
-	id, err := strconv.Atoi(c.Query("id"))
-	if err != nil {
-		fmt.Println(err)
-	}
-	if err := r.uc.ChangeActiveAccount(id); err != nil {
-		error_Response(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusCreated, id)
-}
-
 func (r *accountRoutes) getAccounts(c *gin.Context) {
 	accounts, err := r.uc.GetAccounts()
 	if err != nil {

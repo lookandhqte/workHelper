@@ -77,20 +77,6 @@ func (m *MemoryStorage) GetAccount(id int) (*entity.Account, error) {
 	return account, nil
 }
 
-func (m *MemoryStorage) ChangeActiveAccount(new_id int) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if new_id == m.active_account.ID {
-		return fmt.Errorf("this acc is active")
-	}
-	account, err := m.GetAccount(new_id)
-	if err != nil {
-		return err
-	}
-	m.active_account = account
-	return nil
-}
-
 func (m *MemoryStorage) GetAccountIntegrations(accountID int) (*entity.Integration, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
