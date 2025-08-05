@@ -13,3 +13,46 @@ redirectURI должен менять authorization_code на
 
 
 реализовать бэк функи для того чтобы несколько горутин отрабатывало одновременно и не мешали друг другу
+
+
+amocrm_golang/
+├── cmd/
+│   └── app/
+│       └── main.go
+├── config/
+│   ├── config.go
+│   └── .env.example
+├── internal/
+│   ├── app/
+│   │   └── app.go
+│   │   └── compose.go
+│   ├── controller/
+│   │   └── http/
+│   │       ├── v1/
+│   │       │   ├── account_routes.go
+│   │       │   └── integration_routes.go
+│   │       └── router.go
+│   ├── entity/
+│   │   └── model.go
+│   ├── dto/
+│   │   └── dto.go
+│   │   └── methods.go
+│   ├── usecase/
+│   │   ├── account
+│   │   │  └── init.go
+│   │   │  └── methods.go
+│   │   ├── integration
+│   │   │  └── init.go
+│   │   │  └── methods.go
+│   └── repo/
+│       ├── persistent/
+│       │   └── inmemory.go
+├── pkg/
+│   ├── auth/
+│   │   └── jwt.go
+│   └── cache/
+│       └── cache.go
+├── go.mod
+├── go.sum
+└── .env
+└── .gitignore

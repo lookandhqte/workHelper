@@ -23,15 +23,13 @@ type Contact struct {
 	Email string `json:"email"`
 }
 
-type Contacts *[]Contact
-
 //Структура интеграции
 type Integration struct {
-	AccountID       int       `json:"account_id"`
-	SecretKey       string    `json:"secret_key"`
-	ClientID        string    `json:"client_id"`
-	RedirectUrl     string    `json:"redirect_url"`
-	AuthCode        string    `json:"auth_code"`
-	Token           *Token    `json:"integration_tokens"`
-	AccountContacts *Contacts `json:"account_contacts"`
+	AccountID       int        `json:"account_id"`
+	SecretKey       string     `json:"secret_key"`
+	ClientID        string     `json:"client_id"`
+	RedirectUrl     string     `json:"redirect_url"`
+	AuthCode        string     `json:"auth_code"`
+	Token           *Token     `json:"integration_tokens"`
+	AccountContacts *[]Contact `json:"account_contacts"`
 }

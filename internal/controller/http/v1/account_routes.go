@@ -52,11 +52,11 @@ func (r *accountRoutes) createAccount(c *gin.Context) {
 }
 
 func (r *accountRoutes) makeActiveAccount(c *gin.Context) {
-	id, err := strconv.Atoi(c.Query("id"))
-	if err != nil {
-		error_Response(c, http.StatusInternalServerError, err.Error())
-		return
-	}
+	id, _ := strconv.Atoi(c.Query("id"))
+	// if err != nil {
+	// 	error_Response(c, http.StatusInternalServerError, err.Error())
+	// 	return
+	// }
 	if err := r.uc.ChangeActiveAccount(id); err != nil {
 		error_Response(c, http.StatusInternalServerError, err.Error())
 		return

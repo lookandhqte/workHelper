@@ -31,15 +31,26 @@ func NewIntegrationRoutes(handler *gin.RouterGroup, uc integration.IntegrationUs
 	{
 		h.POST("/", r.createIntegration)
 		h.GET("/", r.getIntegrations)
-		h.PUT("/:id", r.updateIntegration)
-		h.DELETE("/:id", r.deleteIntegration)
+		h.PUT("/:account_id", r.updateIntegration)
+		h.DELETE("/:account_id", r.deleteIntegration)
 		h.GET("/redirect", r.handleRedirect)
-		h.GET("/contacts", r.getContacts)
+		h.GET("/:account_id/contacts", r.getContacts)
 	}
 }
 
+//Проблемы:
+//интеграция не присваивается аккаунту по id
+//у интеграции есть лишние поля
+//конвертация id идет криво.
+//контакты не сохраняются конкретной интеграции (по логике они после этого должны высасываться аккаунтом)
+
 func (r *integrationRoutes) getContacts(c *gin.Context) {
-	integr, err := r.uc.GetIntegrationByClientID(c.Query("client_id"))
+	// id, err := strconv.Atoi(c.Query("account_id"))
+
+	// if err != nil {
+	// 	fmt.Println("no account id")
+	// }
+	integr, err := r.uc.GetIntegration(1)
 
 	if err != nil {
 		error_Response(c, http.StatusUnauthorized, "error in  get contacts func -> get int by client id")
@@ -117,7 +128,7 @@ func (r *integrationRoutes) updateIntegration(c *gin.Context) {
 }
 
 func (r *integrationRoutes) deleteIntegration(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("account_id"))
 	if err != nil {
 		error_Response(c, http.StatusBadRequest, "ID must be integer")
 		return

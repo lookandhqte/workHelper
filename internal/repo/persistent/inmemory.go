@@ -171,9 +171,9 @@ func (m *MemoryStorage) GetIntegrationByClientID(client_id string) (*entity.Inte
 		}
 	}
 
-	if integrationEntity.AuthCode == "" {
-		return nil, fmt.Errorf("no such client_id to get intgrations by client_id")
-	}
+	// if integrationEntity.AuthCode == "" {
+	// 	return nil, fmt.Errorf("no such client_id to get intgrations by client_id")
+	// }
 
 	return integrationEntity, nil
 }
