@@ -27,7 +27,6 @@ func NewAccountRoutes(handler *gin.RouterGroup, uc account.AccountUseCase) {
 		h.POST("/", r.createAccount)
 		h.POST("/:id/active", r.makeActiveAccount)
 		h.GET("/", r.getAccounts)
-		h.GET("/active", r.getActiveAccount)
 		h.GET("/:id", r.getAccount)
 		h.GET("/:id/integrations", r.getAccountIntegrations)
 		h.PUT("/:id", r.updateAccount)
@@ -64,13 +63,6 @@ func (r *accountRoutes) makeActiveAccount(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, id)
-}
-
-func (r *accountRoutes) getActiveAccount(c *gin.Context) {
-
-	acc := r.uc.GetActiveAccount()
-
-	c.JSON(http.StatusCreated, acc)
 }
 
 func (r *accountRoutes) getAccounts(c *gin.Context) {

@@ -6,47 +6,100 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
 
-// App представляет основное приложение
 type App struct {
-	server *http.Server
+	server      *http.Server
+	taskChan    chan func(ctx context.Context)
+	wg          sync.WaitGroup
+	shutdownCtx context.Context
+	cancel      context.CancelFunc
 }
 
-// New создает новое приложение
 func New() *App {
-	return &App{}
+	ctx, cancel := context.WithCancel(context.Background())
+	return &App{
+		taskChan:    make(chan func(ctx context.Context), 10),
+		shutdownCtx: ctx,
+		cancel:      cancel,
+	}
 }
 
-// Run запускает приложение
+func (a *App) AddTask(task func(ctx context.Context)) {
+	select {
+	case a.taskChan <- task:
+		a.wg.Add(1)
+	default:
+		log.Println("Task channel is full, droppng task")
+	}
+}
+
+func (a *App) StartTaskWorker() {
+	go func() {
+		for {
+			select {
+			case task := <-a.taskChan:
+				go func(t func(ctx context.Context)) {
+					defer a.wg.Done()
+					t(a.shutdownCtx)
+				}(task)
+			case <-a.shutdownCtx.Done():
+				return
+			}
+		}
+	}()
+}
+
 func (a *App) Run() {
+
+	a.StartTaskWorker()
 
 	deps := composeDependencies()
 	router := setupRouter(deps)
+
 	a.server = &http.Server{
 		Addr:    deps.cfg.HTTPAddr,
 		Handler: router,
 	}
 
-	go func() {
+	a.AddTask(func(ctx context.Context) {
+		log.Printf("Server starting on %s", deps.cfg.HTTPAddr)
 		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
+			log.Printf("Server error: %v", err)
 		}
-	}()
+	})
+
+	a.AddTask(deps.IntegrationUC.Start(&a.wg))
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
 	log.Println("Shutting down server...")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
 
-	if err := a.server.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown:", err)
+	a.cancel()
+
+	done := make(chan struct{})
+	go func() {
+		a.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		log.Println("All background tasks completed")
+	case <-time.After(5 * time.Second):
+		log.Println("Timeout waiting for tasks to complete")
 	}
 
-	log.Println("Server exiting")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := a.server.Shutdown(shutdownCtx); err != nil {
+		log.Printf("HTTP server shutdown error: %v", err)
+	}
+
+	log.Println("Server exited gracefully")
 }

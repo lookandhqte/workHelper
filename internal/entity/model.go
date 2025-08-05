@@ -2,10 +2,10 @@ package entity
 
 //Структура аккаунта
 type Account struct {
-	ID           int           `json:"id"`
-	CacheExpires int           `json:"cache_expires"`
-	CreatedAt    int           `json:"created_at"`
-	Integrations *Integrations `json:"integrations"`
+	ID           int            `json:"id"`
+	CacheExpires int            `json:"cache_expires"`
+	CreatedAt    int            `json:"created_at"`
+	Integrations *[]Integration `json:"integrations"`
 }
 
 type Token struct {
@@ -23,9 +23,7 @@ type Contact struct {
 	Email string `json:"email"`
 }
 
-type Contacts []Contact
-
-type Integrations []Integration
+type Contacts *[]Contact
 
 //Структура интеграции
 type Integration struct {

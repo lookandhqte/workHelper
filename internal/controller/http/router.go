@@ -1,6 +1,7 @@
 package http
 
 import (
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/app"
 	v1 "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/controller/http/v1"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/integration"
@@ -9,6 +10,7 @@ import (
 )
 
 type Router struct {
+	app *app.App
 	accountUC     account.AccountUseCase
 	integrationUC integration.IntegrationUseCase
 }
@@ -35,4 +37,5 @@ func (r *Router) accountRoutes(api *gin.RouterGroup) {
 
 func (r *Router) integrationRoutes(api *gin.RouterGroup) {
 	v1.NewIntegrationRoutes(api, r.integrationUC)
+	r.integrationUC.
 }

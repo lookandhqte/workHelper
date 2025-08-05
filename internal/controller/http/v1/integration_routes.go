@@ -2,19 +2,14 @@ package v1
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
 	"strconv"
-	"sync"
-	"time"
 
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/dto"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/integration"
 
@@ -26,8 +21,7 @@ type integrationRoutes struct {
 }
 
 const (
-	REF_THRESHOLD_SEC = 3600
-	BASE_Url          = "https://spetser.amocrm.ru/"
+	BASE_URL = "https://spetser.amocrm.ru/"
 )
 
 func NewIntegrationRoutes(handler *gin.RouterGroup, uc integration.IntegrationUseCase) {
@@ -42,7 +36,6 @@ func NewIntegrationRoutes(handler *gin.RouterGroup, uc integration.IntegrationUs
 		h.GET("/redirect", r.handleRedirect)
 		h.GET("/contacts", r.getContacts)
 	}
-	//r.StartTokenRefresher(context.Background())
 }
 
 func (r *integrationRoutes) getContacts(c *gin.Context) {
@@ -58,7 +51,7 @@ func (r *integrationRoutes) getContacts(c *gin.Context) {
 		return
 	}
 
-	contacts, err := r.GetContacts(integr.Token.AccessToken)
+	contacts, err := r.uc.GetContacts(integr.Token.AccessToken)
 	if err != nil {
 		error_Response(c, http.StatusInternalServerError, err.Error())
 		return
@@ -69,105 +62,6 @@ func (r *integrationRoutes) getContacts(c *gin.Context) {
 		"contacts": contacts,
 	})
 
-}
-
-func (r *integrationRoutes) GetContacts(token string) (*dto.ContactsResponse, error) {
-	fullURL := MakeRouteURL("/api/v4/contacts")
-
-	req, err := http.NewRequest(http.MethodGet, fullURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %v", err)
-	}
-
-	req.Header.Add("Authorization", "Bearer "+token)
-	req.Header.Add("Content-Type", "application/json")
-
-	body, err := SendRequest(req)
-	if err != nil {
-		return nil, fmt.Errorf("error while sending request to get contacts")
-	}
-
-	var apiResponse dto.APIContactsResponse
-
-	if err := json.Unmarshal(body, &apiResponse); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
-	}
-
-	return apiResponse.ToContactsResponse(), nil
-
-}
-
-func (r *integrationRoutes) StartTokenRefresher(ctx context.Context) {
-	ticker := time.NewTicker(1 * time.Hour)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			log.Println("Token refresher stopped")
-			return
-		case <-ticker.C:
-			r.refreshTokensBatch()
-		}
-	}
-}
-
-func (r *integrationRoutes) refreshTokensBatch() {
-	integr, err := r.uc.GetActiveIntegrations()
-	if err != nil {
-		log.Printf("Failed to get active integrations: %v", err)
-		return
-	}
-
-	var wg sync.WaitGroup
-	sem := make(chan struct{}, 10)
-
-	for i := range integr {
-		wg.Add(1)
-		sem <- struct{}{}
-
-		go func(integration *entity.Integration) {
-			defer wg.Done()
-			defer func() { <-sem }()
-
-			r.refreshTokenIfNeeded(integration)
-		}(integr[i])
-	}
-
-	wg.Wait()
-}
-
-func (r *integrationRoutes) refreshTokenIfNeeded(integration *entity.Integration) {
-	expiryTime := integration.Token.ServerTime + integration.Token.ExpiresIn
-	now := time.Now().Unix()
-
-	if expiryTime-int(now) <= REF_THRESHOLD_SEC {
-		newTokens, err := r.UpdateTokens(integration.ClientID)
-		if err != nil {
-			log.Printf("[Acc:%s] Failed to refresh token: %v", integration.AccountID, err)
-			return
-		}
-
-		if err := r.uc.UpdateTokens(newTokens); err != nil {
-			log.Printf("[Acc:%s] Failed to save tokens: %v", integration.AccountID, err)
-		}
-	}
-}
-
-func (r *integrationRoutes) UpdateTokens(client_id string) (*entity.Token, error) {
-	integration, err := r.uc.GetIntegrationByClientID(client_id)
-	if err != nil {
-		fmt.Print("error in func update tokens -> get int by client id")
-	}
-
-	data := url.Values{}
-	data.Set("client_id", client_id)
-	data.Set("client_secret", integration.SecretKey)
-	data.Set("grant_type", "refresh_token")
-	data.Set("refresh_token", integration.Token.RefreshToken)
-	data.Set("redirect_uri", integration.RedirectUrl)
-	fullUrl := MakeRouteURL(BASE_Url)
-	return SendTokenRequest(data, fullUrl)
 }
 
 func (r *integrationRoutes) createIntegration(c *gin.Context) {
@@ -201,7 +95,7 @@ func (r *integrationRoutes) getIntegrations(c *gin.Context) {
 }
 
 func (r *integrationRoutes) updateIntegration(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("account_id"))
 	if err != nil {
 		error_Response(c, http.StatusBadRequest, "ID must be integer")
 		return
@@ -220,70 +114,6 @@ func (r *integrationRoutes) updateIntegration(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, integration)
-}
-
-func PrepareRequest(url string, data url.Values) (*http.Request, error) {
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBufferString(data.Encode()))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	return req, nil
-}
-
-func SendRequest(req *http.Request) ([]byte, error) {
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode == http.StatusBadRequest {
-		return nil, fmt.Errorf("API error: %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	return body, nil
-}
-
-func ParseTokenResponse(body []byte) (*entity.Token, error) {
-	responseData := &entity.Token{}
-	if err := json.Unmarshal(body, responseData); err != nil {
-		return nil, err
-	}
-	return responseData, nil
-}
-
-func SendTokenRequest(data url.Values, url string) (*entity.Token, error) {
-	req, err := PrepareRequest(url, data)
-	if err != nil {
-		return nil, fmt.Errorf("request preparation failed: %v", err)
-	}
-
-	body, err := SendRequest(req)
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %v", err)
-	}
-
-	token, err := ParseTokenResponse(body)
-	if err != nil {
-		return nil, fmt.Errorf("response parsing failed: %v", err)
-	}
-
-	return token, nil
-}
-
-func MakeRouteURL(pathi string) string {
-	base, _ := url.Parse(BASE_Url)
-
-	base.Path = path.Join(base.Path, pathi)
-	fullURL := base.String()
-	return fullURL
 }
 
 func (r *integrationRoutes) deleteIntegration(c *gin.Context) {
@@ -309,7 +139,7 @@ func (r *integrationRoutes) handleRedirect(c *gin.Context) {
 		return
 	}
 
-	tokens, err := r.uc.GetTokensByAuthCode(code, clientID)
+	tokens, err := r.GetTokensByAuthCode(code, clientID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse{Error: err.Error()})
 		return
@@ -339,4 +169,53 @@ func (r *integrationRoutes) handleRedirect(c *gin.Context) {
 		"integration": integr,
 		"tokens":      tokens,
 	})
+}
+
+func (m *integrationRoutes) GetTokensByAuthCode(code string, client_id string) (*entity.Token, error) {
+
+	integration, err := m.uc.GetIntegrationByClientID(client_id)
+	if err != nil {
+		return nil, fmt.Errorf("error n func get integr by client id -> error in get tokens method")
+	}
+	data := url.Values{}
+	data.Set("client_id", client_id)
+	data.Set("client_secret", integration.SecretKey)
+	data.Set("grant_type", "authorization_code")
+	data.Set("code", code)
+	data.Set("redirect_uri", integration.RedirectUrl)
+	base, err := url.Parse(BASE_URL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid base URL: %v", err)
+	}
+	base.Path = path.Join(base.Path, "/oauth2/access_token")
+	fullURL := base.String()
+
+	req, err := http.NewRequest(http.MethodPost, fullURL, bytes.NewBufferString(data.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusBadRequest {
+		return nil, fmt.Errorf("API error: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	responseData := &entity.Token{}
+	if err := json.Unmarshal(body, responseData); err != nil {
+		return nil, err
+	}
+
+	return responseData, nil
 }
