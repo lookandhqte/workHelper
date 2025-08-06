@@ -33,7 +33,6 @@ func Load() *Config {
 		DSN:            getEnv("DSN", ""),
 		StorageType:    getEnv("STORAGE_TYPE", "in-memory"),
 	}
-
 }
 
 //Получение переменных окружения .env

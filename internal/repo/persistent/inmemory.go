@@ -46,7 +46,7 @@ func (m *MemoryStorage) AddAccount(account *entity.Account) error {
 	account.CacheExpires = account.CreatedAt + CACHE_EXPIRES_SEC
 
 	integrations := make([]entity.Integration, 0, 5)
-	m.accounts[account.ID].Integrations = &integrations
+	m.accounts[account.ID].Integrations = integrations
 
 	m.accounts[account.ID] = account
 
@@ -83,7 +83,7 @@ func (m *MemoryStorage) GetAccountIntegrations(accountID int) (*[]entity.Integra
 
 	integrations := m.accounts[accountID].Integrations
 
-	return integrations, nil
+	return &integrations, nil
 }
 
 func (m *MemoryStorage) UpdateAccount(account *entity.Account) error {
@@ -117,9 +117,8 @@ func (m *MemoryStorage) AddIntegration(integration *entity.Integration) error {
 	defer m.mu.Unlock()
 
 	m.integrations[integration.AccountID] = integration
-	integrationsPtr := m.accounts[integration.AccountID].Integrations
 
-	*integrationsPtr = append(*integrationsPtr, *integration)
+	m.accounts[integration.AccountID].Integrations = append(m.accounts[integration.AccountID].Integrations, *integration)
 	return nil
 }
 

@@ -18,6 +18,14 @@ func NewDatabaseStorage(cfg *config.Config) (*DatabaseStorage, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = db.AutoMigrate(
+		&entity.Account{},
+		&entity.Integration{},
+		&entity.Contact{},
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	return &DatabaseStorage{DB: db}, nil
 }

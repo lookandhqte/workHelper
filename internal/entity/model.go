@@ -1,12 +1,18 @@
 package entity
 
+import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+)
+
 //Структура аккаунта
 type Account struct {
-	ID              int            `json:"id"`
-	CacheExpires    int            `json:"cache_expires"`
-	CreatedAt       int            `json:"created_at"`
-	Integrations    *[]Integration `json:"integrations"`
-	AccountContacts *[]Contact     `json:"contacts"`
+	ID              int           `json:"id" gorm:"primaryKey"`
+	CacheExpires    int           `json:"cache_expires"`
+	CreatedAt       int           `json:"created_at"`
+	Integrations    []Integration `json:"integrations" gorm:"foreignKey:AccountID"`
+	AccountContacts []Contact     `json:"contacts" gorm:"foreignKey:AccountID"`
 }
 
 type Token struct {
@@ -18,15 +24,28 @@ type Token struct {
 	IntegrationID int    `json:"integration_id"`
 }
 
+func (t *Token) Value() (driver.Value, error) {
+	return json.Marshal(t)
+}
+
+func (t *Token) Scan(value interface{}) error {
+	b, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+	return json.Unmarshal(b, &t)
+}
+
 type Contact struct {
-	ID    int    `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID        int    `json:"id" gorm:"primaryKey"`
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	AccountID int    `json:"account_id"`
 }
 
 //Структура интеграции
 type Integration struct {
-	AccountID   int    `json:"account_id"`
+	AccountID   int    `json:"account_id" gorm:"primaryKey"`
 	SecretKey   string `json:"secret_key"`
 	ClientID    string `json:"client_id"`
 	RedirectUrl string `json:"redirect_url"`
