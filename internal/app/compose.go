@@ -3,9 +3,9 @@ package app
 import (
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
 	controllerhttp "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/controller/http"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/repo"
 	accountUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
 	integrationUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/integration"
+	storageUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/storage"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/pkg/cache"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +21,7 @@ func composeDependencies() *dependencies {
 	cfg := config.Load()
 	memoryCache := cache.NewCache()
 
-	storage := repo.NewStorage(memoryCache, cfg)
+	storage := storageUC.NewStorage(memoryCache, cfg)
 
 	return &dependencies{
 		cfg:           cfg,
