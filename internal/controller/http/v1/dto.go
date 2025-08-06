@@ -1,12 +1,15 @@
 package v1
 
+//ContactResponse структура ответа
 type ContactResponse struct {
 	Name  string  `json:"name"`
 	Email *string `json:"email"`
 }
 
+//ContactsResponse слайс сущностей ContactResponse
 type ContactsResponse []ContactResponse
 
+//APIContactsResponse структура ответа от api
 type APIContactsResponse struct {
 	Page  int `json:"_page"`
 	Links struct {
@@ -61,6 +64,7 @@ type APIContactsResponse struct {
 	} `json:"_embedded"`
 }
 
+//ToContactsResponse превращает ответ api в ContactsResponse
 func (r *APIContactsResponse) ToContactsResponse() *ContactsResponse {
 	contacts := make(ContactsResponse, 0, len(r.Embedded.Contacts))
 

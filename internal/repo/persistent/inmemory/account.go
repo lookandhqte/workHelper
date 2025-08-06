@@ -6,15 +6,16 @@ import (
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 )
 
+//AddAccount создает аккаунт в in-memory хранилище
 func (m *MemoryStorage) AddAccount(account *entity.Account) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.lastAccountID++
 	account.ID = m.lastAccountID
-	account.CacheExpires = account.CreatedAt + CACHE_EXPIRES_SEC
+	account.CacheExpires = account.CreatedAt + CacheExpires
 
-	integrations := make([]entity.Integration, 0, 5)
+	integrations := make([]entity.Integration, 0)
 	m.accounts[account.ID].Integrations = integrations
 
 	m.accounts[account.ID] = account
@@ -22,6 +23,7 @@ func (m *MemoryStorage) AddAccount(account *entity.Account) error {
 	return nil
 }
 
+//GetAccounts возвращает все аккаунты из in-memory хранилища
 func (m *MemoryStorage) GetAccounts() ([]*entity.Account, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -34,6 +36,7 @@ func (m *MemoryStorage) GetAccounts() ([]*entity.Account, error) {
 	return accounts, nil
 }
 
+//GetAccount возвращает аккаунт по id из in-memory хранилища
 func (m *MemoryStorage) GetAccount(id int) (*entity.Account, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -46,6 +49,7 @@ func (m *MemoryStorage) GetAccount(id int) (*entity.Account, error) {
 	return account, nil
 }
 
+//GetAccountIntegrations возвращает интеграции аккаунта из in-memory хранилища
 func (m *MemoryStorage) GetAccountIntegrations(accountID int) (*[]entity.Integration, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -55,6 +59,7 @@ func (m *MemoryStorage) GetAccountIntegrations(accountID int) (*[]entity.Integra
 	return &integrations, nil
 }
 
+//UpdateAccount обновляет аккаунт из in-memory хранилища
 func (m *MemoryStorage) UpdateAccount(account *entity.Account) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -67,6 +72,7 @@ func (m *MemoryStorage) UpdateAccount(account *entity.Account) error {
 	return nil
 }
 
+//DeleteAccount удаляет аккаунт из in-memory хранилища
 func (m *MemoryStorage) DeleteAccount(id int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

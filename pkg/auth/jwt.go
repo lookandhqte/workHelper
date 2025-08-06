@@ -4,23 +4,28 @@ import (
 	"time"
 
 	config "git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
-
 	"github.com/golang-jwt/jwt/v4"
 )
 
 const (
-	AccessTokenExpiry  = 86400 * time.Second
+	//AccessTokenExpiry определяет через сколько обновлять access токен
+	AccessTokenExpiry = 86400 * time.Second
+	//RefreshTokenExpiry определяет через сколько обновлять access токен
 	RefreshTokenExpiry = 2592000 * time.Second
-	SecretKey          = "amocrm_meow"
+	//SecretKey определяет секретный ключ
+	SecretKey = "amocrm_meow"
 )
 
+//var cfg переменная конфигурации
 var cfg = config.Load()
 
+//Claims структура
 type Claims struct {
 	AccountID int `json:"account_id"`
 	jwt.RegisteredClaims
 }
 
+//GenerateJWT генерирует токены
 func GenerateJWT(accountID int, expiry time.Duration) (string, error) {
 
 	claims := &Claims{
@@ -34,14 +39,13 @@ func GenerateJWT(accountID int, expiry time.Duration) (string, error) {
 	return token.SignedString([]byte(cfg.JWTSecret))
 }
 
-//добавить функцию шифрования токенов
-
+//ParseJWT парсит токены
 func ParseJWT(tokenString string) (*Claims, error) {
 
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		&Claims{},
-		func(token *jwt.Token) (interface{}, error) {
+		func(_ *jwt.Token) (interface{}, error) {
 			return []byte(cfg.JWTSecret), nil
 		},
 	)

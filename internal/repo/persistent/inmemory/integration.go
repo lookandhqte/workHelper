@@ -6,6 +6,7 @@ import (
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 )
 
+//AddIntegration добавляет интеграцию в in-memory хранилище
 func (m *MemoryStorage) AddIntegration(integration *entity.Integration) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -16,6 +17,7 @@ func (m *MemoryStorage) AddIntegration(integration *entity.Integration) error {
 	return nil
 }
 
+//GetIntegration возвращает интеграцию из in-memory хранилища
 func (m *MemoryStorage) GetIntegration(id int) (*entity.Integration, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -29,6 +31,7 @@ func (m *MemoryStorage) GetIntegration(id int) (*entity.Integration, error) {
 
 }
 
+//GetIntegrations возвращает все интеграции из in-memory хранилища
 func (m *MemoryStorage) GetIntegrations() (*[]entity.Integration, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -41,6 +44,7 @@ func (m *MemoryStorage) GetIntegrations() (*[]entity.Integration, error) {
 	return &integrations, nil
 }
 
+//UpdateIntegration обновляет интеграцию в in-memory хранилище
 func (m *MemoryStorage) UpdateIntegration(integration *entity.Integration) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -53,6 +57,7 @@ func (m *MemoryStorage) UpdateIntegration(integration *entity.Integration) error
 	return nil
 }
 
+//DeleteIntegration удаляет интеграцию из in-memory хранилища
 func (m *MemoryStorage) DeleteIntegration(accountID int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -65,13 +70,14 @@ func (m *MemoryStorage) DeleteIntegration(accountID int) error {
 	return nil
 }
 
-func (m *MemoryStorage) ReturnByClientID(client_id string) (*entity.Integration, error) {
+//ReturnByClientID возвращает интеграцию по параметру clientID
+func (m *MemoryStorage) ReturnByClientID(clientID string) (*entity.Integration, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	integrations, _ := m.GetIntegrations()
 	for _, integration := range *integrations {
-		if integration.ClientID == client_id {
+		if integration.ClientID == clientID {
 			return &integration, nil
 		}
 	}

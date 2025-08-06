@@ -3,29 +3,30 @@ package inmemory
 import (
 	"sync"
 
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/pkg/cache"
+	entity "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+	cache "git.amocrm.ru/gelzhuravleva/amocrm_golang/pkg/cache"
 )
 
+//MemoryStorage структура определяющая in-memory хранилище
 type MemoryStorage struct {
-	mu             sync.RWMutex
-	accounts       map[int]*entity.Account
-	integrations   map[int]*entity.Integration
-	active_account *entity.Account
-	lastAccountID  int
-	cache          *cache.Cache
+	mu            sync.RWMutex
+	accounts      map[int]*entity.Account
+	integrations  map[int]*entity.Integration
+	lastAccountID int
+	cache         *cache.Cache
 }
 
 const (
-	CACHE_EXPIRES_SEC = 604800
+	//CacheExpires константа, определяющая время жизни кэша
+	CacheExpires = 604800
 )
 
+//NewMemoryStorage создает новое хранилище in-memory
 func NewMemoryStorage(c *cache.Cache) *MemoryStorage {
 	return &MemoryStorage{
-		accounts:       make(map[int]*entity.Account),
-		integrations:   make(map[int]*entity.Integration),
-		active_account: &entity.Account{},
-		lastAccountID:  0,
-		cache:          c,
+		accounts:      make(map[int]*entity.Account),
+		integrations:  make(map[int]*entity.Integration),
+		lastAccountID: 0,
+		cache:         c,
 	}
 }

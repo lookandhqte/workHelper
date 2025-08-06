@@ -6,15 +6,14 @@ import (
 	accountUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
 	integrationUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/integration"
 	storageUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/storage"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/pkg/cache"
-
+	cache "git.amocrm.ru/gelzhuravleva/amocrm_golang/pkg/cache"
 	"github.com/gin-gonic/gin"
 )
 
 type dependencies struct {
 	cfg           *config.Config
-	AccountUC     *accountUC.AccountUseCase
-	IntegrationUC *integrationUC.IntegrationUseCase
+	AccountUC     *accountUC.UseCase
+	IntegrationUC *integrationUC.UseCase
 }
 
 func composeDependencies() *dependencies {

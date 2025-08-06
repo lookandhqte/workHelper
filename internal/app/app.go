@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
@@ -16,6 +17,7 @@ import (
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 )
 
+//App структура приложения
 type App struct {
 	server      *http.Server
 	taskChan    chan func(ctx context.Context)
@@ -25,13 +27,15 @@ type App struct {
 }
 
 const (
-	REF_THRESHOLD_SEC = 3600
+	RefreshThreshold = 3600
+	ShutdownTime     = 5
+	SemaphorSize     = 10
 )
 
 func New() *App {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &App{
-		taskChan:    make(chan func(ctx context.Context), 10),
+		taskChan:    make(chan func(ctx context.Context), SemaphorSize),
 		shutdownCtx: ctx,
 		cancel:      cancel,
 	}
@@ -76,7 +80,7 @@ func (a *App) Run() {
 
 	a.AddTask(func(ctx context.Context) {
 		log.Printf("Server starting on %s", deps.cfg.HTTPAddr)
-		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := a.server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			log.Printf("Server error: %v", err)
 		}
 	})
@@ -87,13 +91,13 @@ func (a *App) Run() {
 		for {
 			select {
 			case <-ticker.C:
-				integrationsPtr, err := deps.IntegrationUC.Return()
+				integrationsPtr, err := deps.IntegrationUC.ReturnAll()
 				if err != nil {
 					log.Printf("Failed to get active integrations: %v", err)
 					return
 				}
 
-				sem := make(chan struct{}, 10)
+				sem := make(chan struct{}, SemaphorSize)
 				integrations := *integrationsPtr
 				for i := range integrations {
 					a.wg.Add(1)
@@ -106,7 +110,7 @@ func (a *App) Run() {
 						expiryTime := integration.Token.ServerTime + integration.Token.ExpiresIn
 						now := time.Now().Unix()
 
-						if expiryTime-int(now) <= REF_THRESHOLD_SEC {
+						if expiryTime-int(now) <= RefreshThreshold {
 
 							idOfAcc := strconv.Itoa(integration.AccountID)
 							base, _ := url.Parse("http://localhost:2020/v1/integrations/")
@@ -116,6 +120,7 @@ func (a *App) Run() {
 							req, _ := http.NewRequest(http.MethodPost, fullURL, nil)
 							client := &http.Client{}
 							resp, _ := client.Do(req)
+							defer resp.Body.Close()
 							if resp.StatusCode != http.StatusAccepted {
 								log.Println("could not do req for updating refresh token")
 							}
@@ -148,11 +153,11 @@ func (a *App) Run() {
 	select {
 	case <-done:
 		log.Println("All background tasks completed")
-	case <-time.After(5 * time.Second):
+	case <-time.After(ShutdownTime * time.Second):
 		log.Println("Timeout waiting for tasks to complete")
 	}
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), ShutdownTime*time.Second)
 	defer cancel()
 	if err := a.server.Shutdown(shutdownCtx); err != nil {
 		log.Printf("HTTP server shutdown error: %v", err)

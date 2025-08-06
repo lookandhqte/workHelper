@@ -1,13 +1,15 @@
 package account
 
 import (
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+	entity "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 )
 
-type AccountUseCase struct {
+//UseCase структура
+type UseCase struct {
 	repo accountRepo
 }
 
+//accountRepo абстракция для определения методов репозитория
 type accountRepo interface {
 	AddAccount(account *entity.Account) error
 	GetAccounts() ([]*entity.Account, error)
@@ -17,6 +19,7 @@ type accountRepo interface {
 	DeleteAccount(id int) error
 }
 
-func New(r accountRepo) *AccountUseCase {
-	return &AccountUseCase{repo: r}
+//New создает новый репозиторий
+func New(r accountRepo) *UseCase {
+	return &UseCase{repo: r}
 }

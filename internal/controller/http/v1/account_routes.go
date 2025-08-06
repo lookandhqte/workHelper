@@ -1,25 +1,23 @@
 package v1
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
-
+	entity "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+	accountUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
 	"github.com/gin-gonic/gin"
 )
 
+//accountRoutes роутер для аккаунта
 type accountRoutes struct {
-	uc account.AccountUseCase
+	uc accountUC.UseCase
 }
 
-type errorResponse struct {
-	Error string `json:"error"`
-}
-
-func NewAccountRoutes(handler *gin.RouterGroup, uc account.AccountUseCase) {
+//NewAccountRoutes создает роуты для /accounts
+func NewAccountRoutes(handler *gin.RouterGroup, uc accountUC.UseCase) {
 	r := &accountRoutes{uc}
 
 	h := handler.Group("/accounts")
@@ -33,101 +31,109 @@ func NewAccountRoutes(handler *gin.RouterGroup, uc account.AccountUseCase) {
 	}
 }
 
+//createAccount создает акаунт
 func (r *accountRoutes) createAccount(c *gin.Context) {
 	var account entity.Account
 	if err := c.ShouldBindJSON(&account); err != nil {
-		error_Response(c, http.StatusBadRequest, err.Error())
+		errorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	account.CreatedAt = int(time.Now().Unix())
 
 	if err := r.uc.Create(&account); err != nil {
-		error_Response(c, http.StatusInternalServerError, err.Error())
+		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusCreated, account)
 }
+
+//getAccounts возвращает аккаунты
 func (r *accountRoutes) getAccounts(c *gin.Context) {
-	accounts, err := r.uc.GetAccounts()
+	accounts, err := r.uc.ReturnAll()
 	if err != nil {
-		error_Response(c, http.StatusInternalServerError, err.Error())
+		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, accounts)
 }
 
+//getAccount возвращает аккаунт
 func (r *accountRoutes) getAccount(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		error_Response(c, http.StatusBadRequest, "invalid account ID")
+		errorResponse(c, http.StatusBadRequest, "invalid account ID")
 		return
 	}
 
-	account, err := r.uc.GetAccount(id)
+	account, err := r.uc.ReturnOne(id)
 	if err != nil {
-		error_Response(c, http.StatusNotFound, "account not found")
+		errorResponse(c, http.StatusNotFound, "account not found")
 		return
 	}
 
 	c.JSON(http.StatusOK, account)
 }
 
+//getAccountIntegrations возвращает все интеграции аккаунта
 func (r *accountRoutes) getAccountIntegrations(c *gin.Context) {
 	accountID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		error_Response(c, http.StatusBadRequest, "invalid account ID")
+		errorResponse(c, http.StatusBadRequest, "invalid account ID")
 		return
 	}
 
-	integration, err := r.uc.GetAccountIntegrations(accountID)
+	integration, err := r.uc.ReturnIntegrations(accountID)
 	if err != nil {
-		error_Response(c, http.StatusNotFound, err.Error())
+		errorResponse(c, http.StatusNotFound, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, integration)
 }
 
+//updateAccount обновляет аккаунт
 func (r *accountRoutes) updateAccount(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		error_Response(c, http.StatusBadRequest, "invalid account ID")
+		errorResponse(c, http.StatusBadRequest, "invalid account ID")
 		return
 	}
 
 	var account entity.Account
 	if err := c.ShouldBindJSON(&account); err != nil {
-		error_Response(c, http.StatusBadRequest, err.Error())
+		errorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	account.ID = id
 	if err := r.uc.Update(&account); err != nil {
-		error_Response(c, http.StatusInternalServerError, err.Error())
+		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, account)
 }
 
+//deleteAccount удаляет аккаунт
 func (r *accountRoutes) deleteAccount(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		error_Response(c, http.StatusBadRequest, "invalid account ID")
+		errorResponse(c, http.StatusBadRequest, "invalid account ID")
 		return
 	}
 
 	if err := r.uc.Delete(id); err != nil {
-		error_Response(c, http.StatusInternalServerError, err.Error())
+		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	c.Status(http.StatusNoContent)
 }
 
-func error_Response(c *gin.Context, code int, err string) {
-	c.AbortWithStatusJSON(code, errorResponse{Error: err})
+//errorResponse ответ с ошибкой
+func errorResponse(c *gin.Context, code int, err string) {
+	c.AbortWithStatusJSON(code, fmt.Errorf("error: %v", err).Error())
 }

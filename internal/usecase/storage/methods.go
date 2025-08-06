@@ -3,12 +3,13 @@ package storage
 import (
 	"log"
 
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/repo/persistent/database"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/repo/persistent/inmemory"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/pkg/cache"
+	config "git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
+	database "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/repo/persistent/database"
+	inmemory "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/repo/persistent/inmemory"
+	cache "git.amocrm.ru/gelzhuravleva/amocrm_golang/pkg/cache"
 )
 
+//NewStorage создает новое хранилище в зависимости от STORAGE_TYPE
 func NewStorage(c *cache.Cache, cfg *config.Config) *Storage {
 	switch cfg.StorageType {
 	case "in-memory":

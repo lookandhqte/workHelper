@@ -1,6 +1,6 @@
 package entity
 
-//Структура аккаунта
+//Account структура аккаунта
 type Account struct {
 	ID              int           `json:"id" gorm:"primaryKey"`
 	CacheExpires    int           `json:"cache_expires"`

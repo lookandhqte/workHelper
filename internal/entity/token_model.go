@@ -1,5 +1,6 @@
 package entity
 
+//Token структура токена
 type Token struct {
 	TokenType     string `json:"token_type"`
 	ExpiresIn     int    `json:"expires_in"`

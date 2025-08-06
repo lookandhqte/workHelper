@@ -7,11 +7,13 @@ import (
 	"gorm.io/gorm"
 )
 
-type DatabaseStorage struct {
+//Storage структура
+type Storage struct {
 	DB *gorm.DB
 }
 
-func NewDatabaseStorage(cfg *config.Config) (*DatabaseStorage, error) {
+//NewDatabaseStorage создает новое хранилище (база данных)
+func NewDatabaseStorage(cfg *config.Config) (*Storage, error) {
 	db, err := gorm.Open(mysql.Open(cfg.DSN), &gorm.Config{})
 	if err != nil {
 		return nil, err
@@ -26,5 +28,5 @@ func NewDatabaseStorage(cfg *config.Config) (*DatabaseStorage, error) {
 		return nil, err
 	}
 
-	return &DatabaseStorage{DB: db}, nil
+	return &Storage{DB: db}, nil
 }
