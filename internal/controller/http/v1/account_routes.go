@@ -16,6 +16,10 @@ type accountRoutes struct {
 	uc accountUC.UseCase
 }
 
+const (
+	SlicesCapacity = 10
+)
+
 //NewAccountRoutes создает роуты для /accounts
 func NewAccountRoutes(handler *gin.RouterGroup, uc accountUC.UseCase) {
 	r := &accountRoutes{uc}
@@ -34,6 +38,8 @@ func NewAccountRoutes(handler *gin.RouterGroup, uc accountUC.UseCase) {
 //createAccount создает акаунт
 func (r *accountRoutes) createAccount(c *gin.Context) {
 	var account entity.Account
+	contacts := make([]entity.Contact, 0, SlicesCapacity)
+	account.AccountContacts = contacts
 	if err := c.ShouldBindJSON(&account); err != nil {
 		errorResponse(c, http.StatusBadRequest, err.Error())
 		return

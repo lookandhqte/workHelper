@@ -40,7 +40,29 @@ func NewIntegrationRoutes(handler *gin.RouterGroup, uc integration.UseCase, clie
 		h.GET("/redirect", r.handleRedirect)
 		h.GET("/:account_id/contacts", r.getContacts)
 		h.POST("/:account_id/refresh", r.needToRef)
+		h.POST("/:account_id/unisender", r.saveUnisenderToken)
 	}
+}
+
+//saveUnisenderToken сохраняет интеграции токен unisender
+func (r *integrationRoutes) saveUnisenderToken(c *gin.Context) {
+	accountID, _ := strconv.Atoi(c.Query("account_id"))
+	accountID++
+	integration, _ := r.uc.ReturnOne(accountID)
+	unisenderKey := c.Query("unisender_key")
+	if unisenderKey == "" {
+		log.Println("save unisender token err: unisender key is empty")
+	}
+	integration.Token.UnisenderKey = unisenderKey
+	err := r.uc.Update(integration)
+	if err != nil {
+		errorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":      "success",
+		"integration": integration,
+	})
 }
 
 //needToRef обновляет токены при необходимости
@@ -62,11 +84,11 @@ func (r *integrationRoutes) needToRef(c *gin.Context) {
 
 //getContacts возвращает контакты
 func (r *integrationRoutes) getContacts(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Query("client_id"))
+	id, _ := strconv.Atoi(c.Query("account_id"))
 	id++
-
+	fmt.Println("--------------------------------")
+	fmt.Printf("id: %d", id)
 	integration, err := r.uc.ReturnOne(id)
-
 	if err != nil {
 		errorResponse(c, http.StatusUnauthorized, "error in  get contacts func -> get int by client id")
 		return
@@ -92,6 +114,8 @@ func (r *integrationRoutes) getContacts(c *gin.Context) {
 //createIntegration создает интеграцию
 func (r *integrationRoutes) createIntegration(c *gin.Context) {
 	var integration entity.Integration
+	var tokens *entity.Token
+	integration.Token = tokens
 	if err := c.ShouldBindJSON(&integration); err != nil {
 		errorResponse(c, http.StatusBadRequest, err.Error())
 		return
@@ -173,12 +197,14 @@ func (r *integrationRoutes) handleRedirect(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
+	fmt.Println(tokens)
 
 	integration, err := r.uc.ReturnByClientID(clientID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
+	fmt.Println(integration)
 
 	integration.Token = tokens
 

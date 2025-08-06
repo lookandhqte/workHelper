@@ -96,9 +96,8 @@ func (a *App) Run() {
 					log.Printf("Failed to get active integrations: %v", err)
 					return
 				}
-
-				sem := make(chan struct{}, SemaphorSize)
 				integrations := *integrationsPtr
+				sem := make(chan struct{}, SemaphorSize)
 				for i := range integrations {
 					a.wg.Add(1)
 					sem <- struct{}{}

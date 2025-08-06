@@ -7,5 +7,5 @@ type Integration struct {
 	ClientID    string `json:"client_id"`
 	RedirectURL string `json:"redirect_url"`
 	AuthCode    string `json:"auth_code"`
-	Token       *Token `json:"integration_tokens"`
+	Token       *Token `json:"integration_tokens" gorm:"foreignKey:TokenID"`
 }
