@@ -77,16 +77,13 @@ func (m *MemoryStorage) GetAccount(id int) (*entity.Account, error) {
 	return account, nil
 }
 
-func (m *MemoryStorage) GetAccountIntegrations(accountID int) (*entity.Integration, error) {
+func (m *MemoryStorage) GetAccountIntegrations(accountID int) (*[]entity.Integration, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	integration, exists := m.integrations[accountID]
-	if !exists {
-		return nil, fmt.Errorf("integration not found to get account integrations")
-	}
+	integrations := m.accounts[accountID].Integrations
 
-	return integration, nil
+	return integrations, nil
 }
 
 func (m *MemoryStorage) UpdateAccount(account *entity.Account) error {

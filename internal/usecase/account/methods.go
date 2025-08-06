@@ -14,7 +14,7 @@ func (uc *AccountUseCase) GetAccount(id int) (*entity.Account, error) {
 	return uc.repo.GetAccount(id)
 }
 
-func (uc *AccountUseCase) GetAccountIntegrations(accountID int) (*entity.Integration, error) {
+func (uc *AccountUseCase) GetAccountIntegrations(accountID int) (*[]entity.Integration, error) {
 	return uc.repo.GetAccountIntegrations(accountID)
 }
 

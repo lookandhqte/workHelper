@@ -12,7 +12,7 @@ type accountRepo interface {
 	AddAccount(account *entity.Account) error
 	GetAccounts() ([]*entity.Account, error)
 	GetAccount(id int) (*entity.Account, error)
-	GetAccountIntegrations(accountID int) (*entity.Integration, error)
+	GetAccountIntegrations(accountID int) (*[]entity.Integration, error)
 	UpdateAccount(account *entity.Account) error
 	DeleteAccount(id int) error
 }
