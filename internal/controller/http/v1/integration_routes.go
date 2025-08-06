@@ -62,7 +62,8 @@ func (r *integrationRoutes) needToRef(c *gin.Context) {
 	}
 }
 func (r *integrationRoutes) getContacts(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Query("account_id"))
+	id, _ := strconv.Atoi(c.Query("client_id"))
+	id++
 
 	integration, err := r.uc.GetIntegration(id)
 
@@ -86,7 +87,6 @@ func (r *integrationRoutes) getContacts(c *gin.Context) {
 		"status":   "success",
 		"contacts": contacts,
 	})
-
 }
 
 func (r *integrationRoutes) createIntegration(c *gin.Context) {
@@ -169,13 +169,7 @@ func (r *integrationRoutes) handleRedirect(c *gin.Context) {
 		return
 	}
 
-	integration_id, err := r.uc.ReturnByClientID(clientID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse{Error: err.Error()})
-		return
-	}
-
-	integration, err := r.uc.GetIntegration(integration_id)
+	integration, err := r.uc.ReturnByClientID(clientID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse{Error: err.Error()})
 		return
@@ -183,7 +177,7 @@ func (r *integrationRoutes) handleRedirect(c *gin.Context) {
 
 	integration.Token = tokens
 
-	if err := r.uc.Create(integration); err != nil {
+	if err := r.uc.Update(integration); err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse{Error: err.Error()})
 		return
 	}
@@ -195,7 +189,7 @@ func (r *integrationRoutes) handleRedirect(c *gin.Context) {
 	})
 }
 
-func (r *integrationRoutes) PrepareData(datacase string, integration *entity.Integration, code string, client_id string) url.Values {
+func (r *integrationRoutes) PrepareData(datacase string, integration *entity.Integration, code string, client_id string, contacts *ContactsResponse) url.Values {
 	data := url.Values{}
 	switch datacase {
 	case "authorization_code":
@@ -216,16 +210,12 @@ func (r *integrationRoutes) PrepareData(datacase string, integration *entity.Int
 
 func (r *integrationRoutes) GetTokensByAuthCode(code string, client_id string) (*entity.Token, error) {
 
-	integration_id, err := r.uc.ReturnByClientID(client_id)
+	integration, err := r.uc.ReturnByClientID(client_id)
 	if err != nil {
 		return nil, fmt.Errorf("error n func get integr by client id -> error in get tokens method")
 	}
-	integration, err := r.uc.GetIntegration(integration_id)
-	if err != nil {
-		return nil, fmt.Errorf("error in get integeation -> get tokens by auth code")
-	}
 
-	data := r.PrepareData("authorization_code", integration, code, client_id)
+	data := r.PrepareData("authorization_code", integration, code, client_id, nil)
 
 	fullurl := r.MakeRouteURL("/oauth2/access_token")
 	req, err := r.PreparePostRequest(fullurl, data)
@@ -256,17 +246,12 @@ func (r *integrationRoutes) GetTokensByAuthCode(code string, client_id string) (
 }
 
 func (r *integrationRoutes) UpdateTokens(client_id string) (*entity.Token, error) {
-	integration_id, err := r.uc.ReturnByClientID(client_id)
+	integration, err := r.uc.ReturnByClientID(client_id)
 	if err != nil {
 		fmt.Print("error in func update tokens -> return by client id")
 	}
 
-	integration, err := r.uc.GetIntegration(integration_id)
-	if err != nil {
-		fmt.Print("error in func update tokens -> get integation")
-	}
-
-	data := r.PrepareData("refresh_token", integration, "", client_id)
+	data := r.PrepareData("refresh_token", integration, "", client_id, nil)
 
 	fullUrl := r.MakeRouteURL(BASE_URL)
 	return r.SendTokenRequest(data, fullUrl)

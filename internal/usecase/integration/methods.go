@@ -12,7 +12,7 @@ func (uc *IntegrationUseCase) Return() (*[]entity.Integration, error) {
 	return uc.repo.GetIntegrations()
 }
 
-func (uc *IntegrationUseCase) ReturnByClientID(client_id string) (int, error) {
+func (uc *IntegrationUseCase) ReturnByClientID(client_id string) (*entity.Integration, error) {
 	return uc.repo.ReturnByClientID(client_id)
 }
 

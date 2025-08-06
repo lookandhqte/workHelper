@@ -21,7 +21,7 @@ type Storage interface {
 	GetIntegrations() (*[]entity.Integration, error)
 	UpdateIntegration(integration *entity.Integration) error
 	DeleteIntegration(accountID int) error
-	ReturnByClientID(client_id string) (int, error)
+	ReturnByClientID(client_id string) (*entity.Integration, error)
 }
 
 var DB Storage

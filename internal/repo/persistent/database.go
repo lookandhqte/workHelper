@@ -98,11 +98,11 @@ func (d *DatabaseStorage) DeleteIntegration(id int) error {
 	return result.Error
 }
 
-func (d *DatabaseStorage) ReturnByClientID(clientID string) (int, error) {
-	var integration entity.Integration
+func (d *DatabaseStorage) ReturnByClientID(clientID string) (*entity.Integration, error) {
+	var integration *entity.Integration
 	result := d.DB.Where("client_id = ?", clientID).First(&integration)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return 0, errors.New("integration not found")
+		return nil, errors.New("integration not found")
 	}
-	return integration.AccountID, result.Error
+	return integration, result.Error
 }

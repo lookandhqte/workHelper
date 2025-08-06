@@ -14,7 +14,7 @@ type integrationRepo interface {
 	GetIntegration(id int) (*entity.Integration, error)
 	UpdateIntegration(integration *entity.Integration) error
 	DeleteIntegration(accountID int) error
-	ReturnByClientID(client_id string) (int, error)
+	ReturnByClientID(client_id string) (*entity.Integration, error)
 }
 
 func New(r integrationRepo) *IntegrationUseCase {

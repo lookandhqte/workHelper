@@ -171,16 +171,16 @@ func (m *MemoryStorage) DeleteIntegration(accountID int) error {
 	return nil
 }
 
-func (m *MemoryStorage) ReturnByClientID(client_id string) (int, error) {
+func (m *MemoryStorage) ReturnByClientID(client_id string) (*entity.Integration, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	integrations, _ := m.GetIntegrations()
-	for id, integration := range *integrations {
+	for _, integration := range *integrations {
 		if integration.ClientID == client_id {
-			return id, nil
+			return &integration, nil
 		}
 	}
 
-	return 0, fmt.Errorf("haven't found here your integration")
+	return nil, fmt.Errorf("haven't found here your integration")
 }
