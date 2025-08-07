@@ -15,19 +15,20 @@ func (d *Storage) AddIntegration(integration *entity.Integration) error {
 
 //GetIntegration возвращает интеграцию по id
 func (d *Storage) GetIntegration(id int) (*entity.Integration, error) {
-	var integration entity.Integration
+	var integration *entity.Integration
 	result := d.DB.First(&integration, id)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, errors.New("integration not found")
 	}
-	return &integration, result.Error
+	return integration, result.Error
 }
 
 //GetIntegrations возвращает все интеграции
 func (d *Storage) GetIntegrations() (*[]entity.Integration, error) {
 	var integrations []entity.Integration
+	integrationsPtr := &integrations
 	result := d.DB.Find(&integrations)
-	return &integrations, result.Error
+	return integrationsPtr, result.Error
 }
 
 //UpdateIntegration обновляет интеграцию
@@ -50,4 +51,22 @@ func (d *Storage) ReturnByClientID(clientID string) (*entity.Integration, error)
 		return nil, errors.New("integration not found")
 	}
 	return integration, result.Error
+}
+
+//UpdateToken обновляет токены
+func (d *Storage) UpdateToken(token *entity.Token) error {
+	if err := d.DB.Save(token).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+//GetTokens возвращает токены интеграции
+func (d *Storage) GetTokens(id int) (*entity.Token, error) {
+	var token *entity.Token
+	result := d.DB.First(&token, id)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, errors.New("integration token not found")
+	}
+	return token, result.Error
 }

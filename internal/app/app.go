@@ -105,8 +105,9 @@ func (a *App) Run() {
 					go func(integration *entity.Integration) {
 						defer a.wg.Done()
 						defer func() { <-sem }()
-
-						expiryTime := integration.Token.ServerTime + integration.Token.ExpiresIn
+						tokenID := integration.TokenID
+						tokens, _ := deps.IntegrationUC.GetTokens(tokenID)
+						expiryTime := tokens.ServerTime + tokens.ExpiresIn
 						now := time.Now().Unix()
 
 						if expiryTime-int(now) <= RefreshThreshold {

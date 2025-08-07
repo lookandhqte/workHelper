@@ -18,7 +18,12 @@ type dependencies struct {
 
 func composeDependencies() *dependencies {
 	cfg := config.Load()
+
 	memoryCache := cache.NewCache()
+
+	if cfg.StorageType == "database" {
+		memoryCache = nil
+	}
 
 	storage := storageUC.NewStorage(memoryCache, cfg)
 

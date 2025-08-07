@@ -11,7 +11,6 @@ func (m *MemoryStorage) AddAccount(account *entity.Account) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.lastAccountID++
 	account.ID = m.lastAccountID
 	account.CacheExpires = account.CreatedAt + CacheExpires
 
@@ -19,6 +18,7 @@ func (m *MemoryStorage) AddAccount(account *entity.Account) error {
 	m.accounts[account.ID].Integrations = integrations
 
 	m.accounts[account.ID] = account
+	m.lastAccountID++
 
 	return nil
 }

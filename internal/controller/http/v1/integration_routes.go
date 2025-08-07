@@ -35,47 +35,63 @@ func NewIntegrationRoutes(handler *gin.RouterGroup, uc integration.UseCase, clie
 	{
 		h.POST("/", r.createIntegration)
 		h.GET("/", r.getIntegrations)
-		h.PUT("/:account_id", r.updateIntegration)
-		h.DELETE("/:account_id", r.deleteIntegration)
+		h.PUT("/:id", r.updateIntegration)
+		h.DELETE("/:id", r.deleteIntegration)
 		h.GET("/redirect", r.handleRedirect)
-		h.GET("/:account_id/contacts", r.getContacts)
-		h.POST("/:account_id/refresh", r.needToRef)
-		h.POST("/:account_id/unisender", r.saveUnisenderToken)
+		h.GET("/:id/contacts", r.getContacts)
+		h.POST("/:id/refresh", r.needToRef)
+		h.POST("/:id/unisender", r.saveUnisenderToken)
 	}
 }
 
 //saveUnisenderToken сохраняет интеграции токен unisender
 func (r *integrationRoutes) saveUnisenderToken(c *gin.Context) {
-	accountID, _ := strconv.Atoi(c.Query("account_id"))
-	accountID++
-	integration, _ := r.uc.ReturnOne(accountID)
-	unisenderKey := c.Query("unisender_key")
-	if unisenderKey == "" {
-		log.Println("save unisender token err: unisender key is empty")
-	}
-	integration.Token.UnisenderKey = unisenderKey
-	err := r.uc.Update(integration)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		errorResponse(c, http.StatusBadRequest, err.Error())
+		log.Printf("err while converting br: %v", err)
+	}
+	var request APIUnisenderRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	unisenderKey := request.UnisenderKey
+	integration, err := r.uc.ReturnOne(id)
+	if err != nil {
+		log.Printf("error while getting integration: %v", err)
+	}
+	tokens, err := r.uc.GetTokens(integration.TokenID)
+	if err != nil {
+		log.Printf("err while getting tokens: %v", err)
+	}
+	tokens.UnisenderKey = unisenderKey
+
+	if err := r.uc.UpdateToken(tokens); err != nil {
+		log.Printf("err while updating tokens: %v", err)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"status":      "success",
-		"integration": integration,
+		"status": "success",
+		"tokens": tokens,
 	})
 }
 
 //needToRef обновляет токены при необходимости
 func (r *integrationRoutes) needToRef(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Query("account_id"))
+	id, _ := strconv.Atoi(c.Param("id"))
 	integration, _ := r.uc.ReturnOne(id)
 	newTokens, err := r.UpdateTokens(integration.ClientID)
+
 	if err != nil {
 		log.Printf("[Acc:%d] Failed to refresh token: %v", integration.AccountID, err)
 		return
 	}
 
-	integration.Token = newTokens
+	if err := r.uc.UpdateToken(newTokens); err != nil {
+		log.Printf("Failed to save tokens: %v", err)
+	}
+	integration.TokenID = newTokens.AccountID
 
 	if err := r.uc.Update(integration); err != nil {
 		log.Printf("[Acc:%d] Failed to save tokens: %v", integration.AccountID, err)
@@ -84,22 +100,29 @@ func (r *integrationRoutes) needToRef(c *gin.Context) {
 
 //getContacts возвращает контакты
 func (r *integrationRoutes) getContacts(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Query("account_id"))
-	id++
-	fmt.Println("--------------------------------")
-	fmt.Printf("id: %d", id)
-	integration, err := r.uc.ReturnOne(id)
+	fmt.Printf("gin context: %v", c)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		errorResponse(c, http.StatusUnauthorized, "error in  get contacts func -> get int by client id")
-		return
+		fmt.Printf("error in func get contacts: %v", err)
 	}
 
-	if integration.Token.AccessToken == "" {
+	integration, err := r.uc.ReturnOne(id)
+
+	if err != nil {
+		fmt.Printf("error in func return one from intfunc get contacts: %v", err)
+	}
+
+	tokens, err := r.uc.GetTokens(integration.TokenID)
+	if err != nil {
+		errorResponse(c, http.StatusUnauthorized, "error in  get tokens func -> get int by client id")
+		return
+	}
+	if tokens.AccessToken == "" {
 		errorResponse(c, http.StatusUnauthorized, "access token missing")
 		return
 	}
 
-	contacts, err := r.GetContacts(integration.Token.AccessToken)
+	contacts, err := r.GetContacts(tokens.AccessToken)
 	if err != nil {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -114,8 +137,7 @@ func (r *integrationRoutes) getContacts(c *gin.Context) {
 //createIntegration создает интеграцию
 func (r *integrationRoutes) createIntegration(c *gin.Context) {
 	var integration entity.Integration
-	var tokens *entity.Token
-	integration.Token = tokens
+
 	if err := c.ShouldBindJSON(&integration); err != nil {
 		errorResponse(c, http.StatusBadRequest, err.Error())
 		return
@@ -146,7 +168,7 @@ func (r *integrationRoutes) getIntegrations(c *gin.Context) {
 
 //updateIntegration обновляет интеграцию
 func (r *integrationRoutes) updateIntegration(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("account_id"))
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		errorResponse(c, http.StatusBadRequest, "ID must be integer")
 		return
@@ -169,7 +191,7 @@ func (r *integrationRoutes) updateIntegration(c *gin.Context) {
 
 //deleteIntegration удаляет интеграцию
 func (r *integrationRoutes) deleteIntegration(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("account_id"))
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		errorResponse(c, http.StatusBadRequest, "ID must be integer")
 		return
@@ -199,19 +221,27 @@ func (r *integrationRoutes) handleRedirect(c *gin.Context) {
 	}
 	fmt.Println(tokens)
 
+	if err := r.uc.UpdateToken(tokens); err != nil {
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	integration, err := r.uc.ReturnByClientID(clientID)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
-	fmt.Println(integration)
 
-	integration.Token = tokens
+	integration.TokenID = tokens.ID
+	integration.AuthCode = code
 
 	if err := r.uc.Update(integration); err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	fmt.Println(integration)
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":      "success",
@@ -234,7 +264,11 @@ func (r *integrationRoutes) PrepareData(datacase string, integration *entity.Int
 		data.Set("client_id", clientID)
 		data.Set("client_secret", integration.SecretKey)
 		data.Set("grant_type", "refresh_token")
-		data.Set("refresh_token", integration.Token.RefreshToken)
+		tokens, err := r.uc.GetTokens(integration.TokenID)
+		if err != nil {
+			log.Printf("error case switch tokens: %v", err)
+		}
+		data.Set("refresh_token", tokens.RefreshToken)
 		data.Set("redirect_uri", integration.RedirectURL)
 	}
 	return data

@@ -86,3 +86,8 @@ func (r *APIContactsResponse) ToContactsResponse() *ContactsResponse {
 
 	return &contacts
 }
+
+type APIUnisenderRequest struct {
+	UnisenderKey string `json:"unisender_key"`
+	AccountID    int    `json:"account_id"`
+}
