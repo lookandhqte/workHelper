@@ -38,7 +38,6 @@ func NewIntegrationRoutes(handler *gin.RouterGroup, uc integration.UseCase, clie
 		h.PUT("/:id", r.updateIntegration)
 		h.DELETE("/:id", r.deleteIntegration)
 		h.GET("/redirect", r.handleRedirect)
-		h.GET("/:id/contacts", r.getContacts)
 		h.POST("/:id/refresh", r.needToRef)
 		h.POST("/:id/unisender", r.saveUnisenderToken)
 	}
@@ -61,19 +60,15 @@ func (r *integrationRoutes) saveUnisenderToken(c *gin.Context) {
 	if err != nil {
 		log.Printf("error while getting integration: %v", err)
 	}
-	tokens, err := r.uc.GetTokens(integration.TokenID)
-	if err != nil {
-		log.Printf("err while getting tokens: %v", err)
-	}
-	tokens.UnisenderKey = unisenderKey
+	integration.Token.UnisenderKey = unisenderKey
 
-	if err := r.uc.UpdateToken(tokens); err != nil {
+	if err := r.uc.Update(integration); err != nil {
 		log.Printf("err while updating tokens: %v", err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status": "success",
-		"tokens": tokens,
+		"status":        "success",
+		"unisender key": unisenderKey,
 	})
 }
 
@@ -88,50 +83,11 @@ func (r *integrationRoutes) needToRef(c *gin.Context) {
 		return
 	}
 
-	if err := r.uc.UpdateToken(newTokens); err != nil {
-		log.Printf("Failed to save tokens: %v", err)
-	}
-	integration.TokenID = newTokens.AccountID
+	integration.Token = *newTokens
 
 	if err := r.uc.Update(integration); err != nil {
 		log.Printf("[Acc:%d] Failed to save tokens: %v", integration.AccountID, err)
 	}
-}
-
-//getContacts возвращает контакты
-func (r *integrationRoutes) getContacts(c *gin.Context) {
-	fmt.Printf("gin context: %v", c)
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		fmt.Printf("error in func get contacts: %v", err)
-	}
-
-	integration, err := r.uc.ReturnOne(id)
-
-	if err != nil {
-		fmt.Printf("error in func return one from intfunc get contacts: %v", err)
-	}
-
-	tokens, err := r.uc.GetTokens(integration.TokenID)
-	if err != nil {
-		errorResponse(c, http.StatusUnauthorized, "error in  get tokens func -> get int by client id")
-		return
-	}
-	if tokens.AccessToken == "" {
-		errorResponse(c, http.StatusUnauthorized, "access token missing")
-		return
-	}
-
-	contacts, err := r.GetContacts(tokens.AccessToken)
-	if err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"status":   "success",
-		"contacts": contacts,
-	})
 }
 
 //createIntegration создает интеграцию
@@ -219,12 +175,6 @@ func (r *integrationRoutes) handleRedirect(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
-	fmt.Println(tokens)
-
-	if err := r.uc.UpdateToken(tokens); err != nil {
-		c.JSON(http.StatusInternalServerError, err.Error())
-		return
-	}
 
 	integration, err := r.uc.ReturnByClientID(clientID)
 
@@ -233,15 +183,25 @@ func (r *integrationRoutes) handleRedirect(c *gin.Context) {
 		return
 	}
 
-	integration.TokenID = tokens.ID
+	err = r.uc.UpdateToken(tokens)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	tokens, err = r.uc.GetTokens(tokens.AccountID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	integration.Token = *tokens
 	integration.AuthCode = code
 
 	if err := r.uc.Update(integration); err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	fmt.Println(integration)
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":      "success",
@@ -264,11 +224,7 @@ func (r *integrationRoutes) PrepareData(datacase string, integration *entity.Int
 		data.Set("client_id", clientID)
 		data.Set("client_secret", integration.SecretKey)
 		data.Set("grant_type", "refresh_token")
-		tokens, err := r.uc.GetTokens(integration.TokenID)
-		if err != nil {
-			log.Printf("error case switch tokens: %v", err)
-		}
-		data.Set("refresh_token", tokens.RefreshToken)
+		data.Set("refresh_token", integration.Token.RefreshToken)
 		data.Set("redirect_uri", integration.RedirectURL)
 	}
 	return data
@@ -284,7 +240,7 @@ func (r *integrationRoutes) GetTokensByAuthCode(code string, clientID string) (*
 
 	data := r.PrepareData("authorization_code", integration, code, clientID)
 
-	fullURL := r.MakeRouteURL("/oauth2/access_token")
+	fullURL := MakeRouteURL("/oauth2/access_token")
 	req, err := r.PreparePostRequest(fullURL, data)
 	if err != nil {
 		return nil, err
@@ -321,39 +277,12 @@ func (r *integrationRoutes) UpdateTokens(clientID string) (*entity.Token, error)
 
 	data := r.PrepareData("refresh_token", integration, "", clientID)
 
-	fullURL := r.MakeRouteURL(BaseURL)
+	fullURL := MakeRouteURL(BaseURL)
 	return r.SendTokenRequest(data, fullURL)
 }
 
-//GetContacts возвращает контакты
-func (r *integrationRoutes) GetContacts(token string) (*ContactsResponse, error) {
-	fullURL := r.MakeRouteURL("/api/v4/contacts")
-
-	req, err := http.NewRequest(http.MethodGet, fullURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %v", err)
-	}
-
-	req.Header.Add("Authorization", "Bearer "+token)
-	req.Header.Add("Content-Type", "application/json")
-
-	body, err := r.SendRequest(req)
-	if err != nil {
-		return nil, fmt.Errorf("error while sending request to get contacts")
-	}
-
-	var apiResponse APIContactsResponse
-
-	if err := json.Unmarshal(body, &apiResponse); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
-	}
-
-	return apiResponse.ToContactsResponse(), nil
-
-}
-
 //MakeRouteURL возвращает полный URL адрес
-func (r *integrationRoutes) MakeRouteURL(pathi string) string {
+func MakeRouteURL(pathi string) string {
 	base, _ := url.Parse(BaseURL)
 
 	base.Path = path.Join(base.Path, pathi)
@@ -372,8 +301,8 @@ func (r *integrationRoutes) PreparePostRequest(url string, data url.Values) (*ht
 }
 
 //SendRequest отправляет запрос
-func (r *integrationRoutes) SendRequest(req *http.Request) ([]byte, error) {
-	resp, err := r.client.Do(req)
+func SendRequest(req *http.Request, r http.Client) ([]byte, error) {
+	resp, err := r.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -407,7 +336,7 @@ func (r *integrationRoutes) SendTokenRequest(data url.Values, url string) (*enti
 		return nil, fmt.Errorf("request preparation failed: %v", err)
 	}
 
-	body, err := r.SendRequest(req)
+	body, err := SendRequest(req, *r.client)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %v", err)
 	}

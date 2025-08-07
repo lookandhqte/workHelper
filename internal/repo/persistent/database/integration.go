@@ -9,6 +9,9 @@ import (
 
 //AddIntegration добавляет интеграцию
 func (d *Storage) AddIntegration(integration *entity.Integration) error {
+	var tokens *entity.Token = &entity.Token{}
+	tokens.AccountID = integration.AccountID
+	integration.Token = *tokens
 	result := d.DB.Create(integration)
 	return result.Error
 }
@@ -55,7 +58,7 @@ func (d *Storage) ReturnByClientID(clientID string) (*entity.Integration, error)
 
 //UpdateToken обновляет токены
 func (d *Storage) UpdateToken(token *entity.Token) error {
-	if err := d.DB.Save(token).Error; err != nil {
+	if err := d.DB.Where("account_id = ?", token.AccountID).Save(token).Error; err != nil {
 		return err
 	}
 	return nil

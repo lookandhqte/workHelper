@@ -8,5 +8,5 @@ type Integration struct {
 	ClientID    string `json:"client_id"`
 	RedirectURL string `json:"redirect_url"`
 	AuthCode    string `json:"auth_code"`
-	TokenID     int    `json:"integration_tokens" gorm:"foreignKey:Token.ID"`
+	Token       Token  `json:"integration_token"`
 }

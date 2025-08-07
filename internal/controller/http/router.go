@@ -37,7 +37,7 @@ func NewRouter(
 
 //accountRoutes создает роуты для аккаунта
 func (r *Router) accountRoutes(api *gin.RouterGroup) {
-	v1.NewAccountRoutes(api, r.accountUC)
+	v1.NewAccountRoutes(api, r.accountUC, r.client)
 }
 
 //integrationRoutes создает роуты для интеграций

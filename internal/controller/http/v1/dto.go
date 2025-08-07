@@ -1,5 +1,7 @@
 package v1
 
+import "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+
 //ContactResponse структура ответа
 type ContactResponse struct {
 	Name  string  `json:"name"`
@@ -82,6 +84,29 @@ func (r *APIContactsResponse) ToContactsResponse() *ContactsResponse {
 		}
 
 		contacts = append(contacts, cr)
+	}
+
+	return &contacts
+}
+
+func (r *ContactsResponse) ResponseToContacts(response *ContactsResponse) *[]entity.Contact {
+	contacts := make([]entity.Contact, 0, len(*response))
+	id := 0
+
+	for _, contact := range *response {
+		cr := entity.Contact{
+			ID:     id,
+			Name:   contact.Name,
+			Email:  *contact.Email,
+			Status: "unsync",
+		}
+
+		if *contact.Email == "" {
+			cr.Status = "invalid"
+		}
+
+		contacts = append(contacts, cr)
+		id++
 	}
 
 	return &contacts

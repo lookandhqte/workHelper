@@ -6,4 +6,5 @@ type Contact struct {
 	Name      string `json:"name"`
 	Email     string `json:"email"`
 	AccountID int    `json:"account_id" gorm:"foreignKey:AccountID"`
+	Status    string `json:"status"`
 }
