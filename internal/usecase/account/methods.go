@@ -17,6 +17,11 @@ func (uc *UseCase) ReturnOne(id int) (*entity.Account, error) {
 	return uc.repo.GetAccount(id)
 }
 
+//SaveContacts сохраняет контакты
+func (uc *UseCase) SaveContacts(contact *[]entity.Contact) error {
+	return uc.repo.SaveContacts(contact)
+}
+
 //ReturnIntegrations возвращает интеграции аккаунта из хранилища
 func (uc *UseCase) ReturnIntegrations(accountID int) (*[]entity.Integration, error) {
 	return uc.repo.GetAccountIntegrations(accountID)

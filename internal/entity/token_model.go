@@ -3,7 +3,7 @@ package entity
 //Token структура токена
 type Token struct {
 	AccountID     int    `json:"tok_account_id" gorm:"primaryKey, foreignKey: Account.ID"`
-	IntegrationID int    `json:"int_id" gorm:"foreignKey: Integration.ID"`
+	IntegrationID int    `json:"int_id" gorm:"primaryKey, foreignKey: Integration.ID"`
 	TokenType     string `json:"token_type"`
 	ExpiresIn     int    `json:"expires_in"`
 	ServerTime    int    `json:"server_time"`

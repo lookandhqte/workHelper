@@ -84,3 +84,7 @@ func (m *MemoryStorage) DeleteAccount(id int) error {
 	delete(m.accounts, id)
 	return nil
 }
+
+func (m *MemoryStorage) SaveContacts(contact *[]entity.Contact) error {
+	return nil
+}

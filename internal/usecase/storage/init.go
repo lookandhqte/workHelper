@@ -18,6 +18,8 @@ type Storage interface {
 	ReturnByClientID(clientID string) (*entity.Integration, error)
 	UpdateToken(token *entity.Token) error
 	GetTokens(id int) (*entity.Token, error)
+	SaveContacts(contact *[]entity.Contact) error
+	AddToken(token *entity.Token) error
 }
 
 //DB Глобальная переенная хранилища

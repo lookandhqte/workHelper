@@ -42,3 +42,7 @@ func (uc *UseCase) UpdateToken(token *entity.Token) error {
 func (uc *UseCase) GetTokens(id int) (*entity.Token, error) {
 	return uc.repo.GetTokens(id)
 }
+
+func (uc *UseCase) AddToken(token *entity.Token) error {
+	return uc.repo.AddToken(token)
+}

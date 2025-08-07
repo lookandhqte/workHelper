@@ -70,6 +70,13 @@ func (r *accountRoutes) getAccountContacts(c *gin.Context) {
 		return
 	}
 	contacts := contactsResponse.ResponseToContacts(contactsResponse)
+	err = r.uc.SaveContacts(contacts)
+
+	if err != nil {
+		log.Printf("error while saving contacts func get account contacts: %v", err)
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	account, err := r.uc.ReturnOne(integrations[0].AccountID)
 	if err != nil {

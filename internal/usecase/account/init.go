@@ -17,6 +17,7 @@ type accountRepo interface {
 	GetAccountIntegrations(accountID int) (*[]entity.Integration, error)
 	UpdateAccount(account *entity.Account) error
 	DeleteAccount(id int) error
+	SaveContacts(contact *[]entity.Contact) error
 }
 
 //New создает новый репозиторий

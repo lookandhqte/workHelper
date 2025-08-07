@@ -91,3 +91,6 @@ func (m *MemoryStorage) UpdateToken(token *entity.Token) error {
 func (m *MemoryStorage) GetTokens(id int) (*entity.Token, error) {
 	return nil, nil
 }
+func (m *MemoryStorage) AddToken(token *entity.Token) error {
+	return nil
+}

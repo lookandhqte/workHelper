@@ -56,11 +56,28 @@ func (d *Storage) ReturnByClientID(clientID string) (*entity.Integration, error)
 	return integration, result.Error
 }
 
-//UpdateToken обновляет токены
-func (d *Storage) UpdateToken(token *entity.Token) error {
-	if err := d.DB.Where("account_id = ?", token.AccountID).Save(token).Error; err != nil {
+//AddToken обновляет токены
+func (d *Storage) AddToken(token *entity.Token) error {
+	if err := d.DB.Where("account_id = ? AND integration_id = ?",
+		token.AccountID, token.IntegrationID).Save(token).Error; err != nil {
 		return err
 	}
+
+	return nil
+}
+
+//UpdateToken обновляет токены
+func (d *Storage) UpdateToken(token *entity.Token) error {
+	var existingToken entity.Token
+	if err := d.DB.Where("account_id = ? AND integration_id = ?",
+		token.AccountID, token.IntegrationID).First(&existingToken).Error; err != nil {
+		return err
+	}
+
+	if err := d.DB.Model(&existingToken).Updates(token).Error; err != nil {
+		return err
+	}
+
 	return nil
 }
 

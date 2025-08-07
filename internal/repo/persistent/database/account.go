@@ -49,7 +49,7 @@ func (d *Storage) DeleteAccount(id int) error {
 	return result.Error
 }
 
-//SaveContacts сохраняет контакты аккаунту
+//SaveContacts сохраняет контакты
 func (d *Storage) SaveContacts(contact *[]entity.Contact) error {
 
 	result := d.DB.Save(&contact)
