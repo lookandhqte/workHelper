@@ -12,7 +12,6 @@ func (m *MemoryStorage) AddIntegration(integration *entity.Integration) error {
 	defer m.mu.Unlock()
 
 	m.integrations[integration.AccountID] = integration
-
 	m.accounts[integration.AccountID].Integrations = append(m.accounts[integration.AccountID].Integrations, *integration)
 	return nil
 }
@@ -83,14 +82,4 @@ func (m *MemoryStorage) ReturnByClientID(clientID string) (*entity.Integration, 
 	}
 
 	return nil, fmt.Errorf("haven't found here your integration")
-}
-
-func (m *MemoryStorage) UpdateToken(token *entity.Token) error {
-	return nil
-}
-func (m *MemoryStorage) GetTokens(id int) (*entity.Token, error) {
-	return nil, nil
-}
-func (m *MemoryStorage) AddToken(token *entity.Token) error {
-	return nil
 }

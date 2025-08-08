@@ -9,9 +9,6 @@ import (
 
 //AddIntegration добавляет интеграцию
 func (d *Storage) AddIntegration(integration *entity.Integration) error {
-	var tokens *entity.Token = &entity.Token{}
-	tokens.AccountID = integration.AccountID
-	integration.Token = *tokens
 	result := d.DB.Create(integration)
 	return result.Error
 }
@@ -19,7 +16,7 @@ func (d *Storage) AddIntegration(integration *entity.Integration) error {
 //GetIntegration возвращает интеграцию по id
 func (d *Storage) GetIntegration(id int) (*entity.Integration, error) {
 	var integration *entity.Integration
-	result := d.DB.First(&integration, id)
+	result := d.DB.Preload("Token").First(&integration, id)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, errors.New("integration not found")
 	}
@@ -30,13 +27,16 @@ func (d *Storage) GetIntegration(id int) (*entity.Integration, error) {
 func (d *Storage) GetIntegrations() (*[]entity.Integration, error) {
 	var integrations []entity.Integration
 	integrationsPtr := &integrations
-	result := d.DB.Find(&integrations)
+	result := d.DB.Preload("Token").Find(&integrationsPtr)
 	return integrationsPtr, result.Error
 }
 
 //UpdateIntegration обновляет интеграцию
 func (d *Storage) UpdateIntegration(integration *entity.Integration) error {
-	result := d.DB.Save(integration)
+	if integration.Token.AccessToken != "" {
+		d.DB.Model(&integration).Association("Token").Replace(&integration.Token)
+	}
+	result := d.DB.Where("id = ?", integration.ID).Updates(integration)
 	return result.Error
 }
 
@@ -54,39 +54,4 @@ func (d *Storage) ReturnByClientID(clientID string) (*entity.Integration, error)
 		return nil, errors.New("integration not found")
 	}
 	return integration, result.Error
-}
-
-//AddToken обновляет токены
-func (d *Storage) AddToken(token *entity.Token) error {
-	if err := d.DB.Where("account_id = ? AND integration_id = ?",
-		token.AccountID, token.IntegrationID).Save(token).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-//UpdateToken обновляет токены
-func (d *Storage) UpdateToken(token *entity.Token) error {
-	var existingToken entity.Token
-	if err := d.DB.Where("account_id = ? AND integration_id = ?",
-		token.AccountID, token.IntegrationID).First(&existingToken).Error; err != nil {
-		return err
-	}
-
-	if err := d.DB.Model(&existingToken).Updates(token).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-//GetTokens возвращает токены интеграции
-func (d *Storage) GetTokens(id int) (*entity.Token, error) {
-	var token *entity.Token
-	result := d.DB.First(&token, id)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, errors.New("integration token not found")
-	}
-	return token, result.Error
 }

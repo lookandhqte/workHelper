@@ -74,19 +74,23 @@ func (r *integrationRoutes) saveUnisenderToken(c *gin.Context) {
 
 //needToRef обновляет токены при необходимости
 func (r *integrationRoutes) needToRef(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		log.Printf("failed to parse id: %v", err)
+		return
+	}
 	integration, _ := r.uc.ReturnOne(id)
 	newTokens, err := r.UpdateTokens(integration.ClientID)
 
 	if err != nil {
-		log.Printf("[Acc:%d] Failed to refresh token: %v", integration.AccountID, err)
+		log.Printf("[Acc:%d] Failed to refresh token: %v", integration.ID, err)
 		return
 	}
 
-	integration.Token = *newTokens
+	integration.Token = newTokens
 
 	if err := r.uc.Update(integration); err != nil {
-		log.Printf("[Acc:%d] Failed to save tokens: %v", integration.AccountID, err)
+		log.Printf("[Acc:%d] Failed to save tokens: %v", integration.ID, err)
 	}
 }
 
@@ -96,10 +100,6 @@ func (r *integrationRoutes) createIntegration(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&integration); err != nil {
 		errorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	if integration.AccountID == 0 {
-		errorResponse(c, http.StatusBadRequest, "account ID is required")
 		return
 	}
 
@@ -124,19 +124,12 @@ func (r *integrationRoutes) getIntegrations(c *gin.Context) {
 
 //updateIntegration обновляет интеграцию
 func (r *integrationRoutes) updateIntegration(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		errorResponse(c, http.StatusBadRequest, "ID must be integer")
-		return
-	}
-
 	var integration entity.Integration
 	if err := c.ShouldBindJSON(&integration); err != nil {
 		errorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	integration.AccountID = id
 	if err := r.uc.Update(&integration); err != nil {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -183,20 +176,7 @@ func (r *integrationRoutes) handleRedirect(c *gin.Context) {
 		return
 	}
 
-	err = r.uc.UpdateToken(tokens)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	tokens, err = r.uc.GetTokens(tokens.AccountID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	integration.Token = *tokens
-	integration.AuthCode = code
+	integration.Token = tokens
 
 	if err := r.uc.Update(integration); err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
@@ -240,7 +220,7 @@ func (r *integrationRoutes) GetTokensByAuthCode(code string, clientID string) (*
 
 	data := r.PrepareData("authorization_code", integration, code, clientID)
 
-	fullURL := MakeRouteURL("/oauth2/access_token")
+	fullURL := MakeRouteURL("/oauth2/access_token", "")
 	req, err := r.PreparePostRequest(fullURL, data)
 	if err != nil {
 		return nil, err
@@ -265,6 +245,8 @@ func (r *integrationRoutes) GetTokensByAuthCode(code string, clientID string) (*
 		return nil, err
 	}
 
+	responseData.IntegrationID = integration.ID
+
 	return responseData, nil
 }
 
@@ -277,14 +259,16 @@ func (r *integrationRoutes) UpdateTokens(clientID string) (*entity.Token, error)
 
 	data := r.PrepareData("refresh_token", integration, "", clientID)
 
-	fullURL := MakeRouteURL(BaseURL)
+	fullURL := MakeRouteURL(BaseURL, "")
 	return r.SendTokenRequest(data, fullURL)
 }
 
 //MakeRouteURL возвращает полный URL адрес
-func MakeRouteURL(pathi string) string {
+func MakeRouteURL(pathi string, baseURL string) string {
 	base, _ := url.Parse(BaseURL)
-
+	if baseURL != "" {
+		base, _ = url.Parse(baseURL)
+	}
 	base.Path = path.Join(base.Path, pathi)
 	fullURL := base.String()
 	return fullURL

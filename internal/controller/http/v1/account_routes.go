@@ -1,10 +1,12 @@
 package v1
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -36,7 +38,87 @@ func NewAccountRoutes(handler *gin.RouterGroup, uc accountUC.UseCase, client *ht
 		h.PUT("/:id", r.updateAccount)
 		h.DELETE("/:id", r.deleteAccount)
 		h.GET("/:id/contacts", r.getAccountContacts)
+		h.GET("/:id/unisender", r.authorizeInUnisender)
 	}
+}
+
+//authorizeInUnisender
+func (r *accountRoutes) authorizeInUnisender(c *gin.Context) {
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		log.Printf("error while atoi id func auth unisender: %v", err)
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	fmt.Println(id)
+
+	integrationsPtr, err := r.uc.ReturnIntegrations(id)
+	if err != nil {
+		log.Printf("error while getting account integrations func auth unisender: %v", err)
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	integrations := *integrationsPtr
+	idOfSlice := 0
+
+	for _, integration := range integrations {
+		if integration.Token.UnisenderKey != "" {
+			break
+		}
+		idOfSlice++
+	}
+
+	unisenderKey := integrations[idOfSlice].Token.UnisenderKey
+	fmt.Println(unisenderKey)
+	fullURL := "https://api.unisender.com/ru/api/getLists?format=json&api_key=" + unisenderKey
+	//fullURL := MakeRouteURL(unisenderKey, baseURL)
+
+	fmt.Println(fullURL)
+
+	//этот момент переделать
+	var data url.Values = url.Values{}
+	req, err := http.NewRequest(http.MethodGet, fullURL, bytes.NewBufferString(data.Encode()))
+	if err != nil {
+		log.Printf("error while new request func auth unisender: %v", err)
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	body, err := SendRequest(req, *r.client)
+	if err != nil {
+		log.Printf("error while sending request func auth unisender: %v", err)
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	responseData := &ListUnisender{}
+	//fmt.Printf("body: %v", &body)
+	if err := json.Unmarshal(body, &responseData); err != nil {
+		log.Printf("error while unmarshal data func auth unisender: %v", err)
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// amount := responseData.ResponseToContactsAmount(&responseData)
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":   "success",
+		"response": responseData,
+	})
+}
+
+//PreparePostRequest готовит post запрос
+func (r *accountRoutes) PrepareGetRequest(url string, data url.Values) (*http.Request, error) {
+	req, err := http.NewRequest(http.MethodGet, url, bytes.NewBufferString(data.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	return req, nil
 }
 
 //getAccountContacts возвращает контакты аккаунта по первой authed интеграции
@@ -56,13 +138,16 @@ func (r *accountRoutes) getAccountContacts(c *gin.Context) {
 	}
 	integrations := *integrationsPtr
 	idOfAuthedIntegration := 0
+	idInSlice := 0
 	for _, integration := range integrations {
-		if integration.Token.AccessToken != "" {
+		if integration.Token != nil {
 			idOfAuthedIntegration = integration.ID
 			break
 		}
+		idInSlice++
 	}
-	tokens := integrations[idOfAuthedIntegration].Token.AccessToken
+
+	tokens := integrations[idInSlice].Token.AccessToken
 	contactsResponse, err := r.GetContacts(tokens)
 	if err != nil {
 		log.Printf("error while getting contacts func get account contacts: %v", err)
@@ -70,15 +155,8 @@ func (r *accountRoutes) getAccountContacts(c *gin.Context) {
 		return
 	}
 	contacts := contactsResponse.ResponseToContacts(contactsResponse)
-	err = r.uc.SaveContacts(contacts)
 
-	if err != nil {
-		log.Printf("error while saving contacts func get account contacts: %v", err)
-		errorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	account, err := r.uc.ReturnOne(integrations[0].AccountID)
+	account, err := r.uc.ReturnOne(integrations[idOfAuthedIntegration].ID)
 	if err != nil {
 		log.Printf("error while returning one account func get account contacts: %v", err)
 		errorResponse(c, http.StatusInternalServerError, err.Error())
@@ -105,7 +183,7 @@ func (r *accountRoutes) getAccountContacts(c *gin.Context) {
 
 //GetContacts возвращает контакты
 func (r *accountRoutes) GetContacts(token string) (*ContactsResponse, error) {
-	fullURL := MakeRouteURL("/api/v4/contacts")
+	fullURL := MakeRouteURL("/api/v4/contacts", "")
 
 	req, err := http.NewRequest(http.MethodGet, fullURL, nil)
 	if err != nil {
@@ -133,13 +211,10 @@ func (r *accountRoutes) GetContacts(token string) (*ContactsResponse, error) {
 //createAccount создает акаунт
 func (r *accountRoutes) createAccount(c *gin.Context) {
 	var account entity.Account
-	contacts := make([]entity.Contact, 0, SlicesCapacity)
-	account.AccountContacts = contacts
 	if err := c.ShouldBindJSON(&account); err != nil {
 		errorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-
 	account.CreatedAt = int(time.Now().Unix())
 
 	if err := r.uc.Create(&account); err != nil {

@@ -33,16 +33,3 @@ func (uc *UseCase) ReturnOne(id int) (*entity.Integration, error) {
 func (uc *UseCase) Delete(id int) error {
 	return uc.repo.DeleteIntegration(id)
 }
-
-//UpdateToken обновляет токены
-func (uc *UseCase) UpdateToken(token *entity.Token) error {
-	return uc.repo.UpdateToken(token)
-}
-
-func (uc *UseCase) GetTokens(id int) (*entity.Token, error) {
-	return uc.repo.GetTokens(id)
-}
-
-func (uc *UseCase) AddToken(token *entity.Token) error {
-	return uc.repo.AddToken(token)
-}

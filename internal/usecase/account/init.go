@@ -12,12 +12,12 @@ type UseCase struct {
 //accountRepo абстракция для определения методов репозитория
 type accountRepo interface {
 	AddAccount(account *entity.Account) error
-	GetAccounts() ([]*entity.Account, error)
+	GetAccounts() (*[]entity.Account, error)
 	GetAccount(id int) (*entity.Account, error)
 	GetAccountIntegrations(accountID int) (*[]entity.Integration, error)
 	UpdateAccount(account *entity.Account) error
 	DeleteAccount(id int) error
-	SaveContacts(contact *[]entity.Contact) error
+	// SaveContacts(contact *[]entity.Contact) error
 }
 
 //New создает новый репозиторий

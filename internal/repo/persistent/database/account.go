@@ -14,9 +14,9 @@ func (d *Storage) AddAccount(account *entity.Account) error {
 }
 
 //GetAccounts возвращает все аккаунты
-func (d *Storage) GetAccounts() ([]*entity.Account, error) {
-	var accounts []*entity.Account
-	result := d.DB.Find(&accounts)
+func (d *Storage) GetAccounts() (*[]entity.Account, error) {
+	var accounts *[]entity.Account
+	result := d.DB.Preload("AccountContacts").Find(&accounts)
 	return accounts, result.Error
 }
 
@@ -32,9 +32,9 @@ func (d *Storage) GetAccount(id int) (*entity.Account, error) {
 
 //GetAccountIntegrations возвращает все интеграции аккаунта
 func (d *Storage) GetAccountIntegrations(accountID int) (*[]entity.Integration, error) {
-	var integrations []entity.Integration
-	result := d.DB.Where("account_id = ?", accountID).Find(&integrations)
-	return &integrations, result.Error
+	var integrations *[]entity.Integration
+	result := d.DB.Where("account_id = ?", accountID).Preload("Token").Find(&integrations)
+	return integrations, result.Error
 }
 
 //UpdateAccount обновляет аккаунт
@@ -49,12 +49,12 @@ func (d *Storage) DeleteAccount(id int) error {
 	return result.Error
 }
 
-//SaveContacts сохраняет контакты
-func (d *Storage) SaveContacts(contact *[]entity.Contact) error {
+// //SaveContacts сохраняет контакты
+// func (d *Storage) SaveContacts(contact *[]entity.Contact) error {
 
-	result := d.DB.Save(&contact)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return errors.New("could not save contacts")
-	}
-	return result.Error
-}
+// 	result := d.DB.Save(&contact)
+// 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+// 		return errors.New("could not save contacts")
+// 	}
+// 	return result.Error
+// }

@@ -89,6 +89,26 @@ func (r *APIContactsResponse) ToContactsResponse() *ContactsResponse {
 	return &contacts
 }
 
+type UnisenderResponse struct {
+	Result struct {
+		ListID       int `json:"listId"`
+		SearchParams struct {
+			TagIds string `json:"tagIds"`
+			Type   string `json:"type"`
+		} `json:"searchParams"`
+		Count string `json:"count"`
+	} `json:"result"`
+}
+
+type contactsUnisenderAmount struct {
+	Count string `json:"count"`
+}
+
+func (r UnisenderResponse) ResponseToContactsAmount(response *UnisenderResponse) *contactsUnisenderAmount {
+	var amount contactsUnisenderAmount = contactsUnisenderAmount{Count: response.Result.Count}
+	return &amount
+}
+
 func (r *ContactsResponse) ResponseToContacts(response *ContactsResponse) *[]entity.Contact {
 	contacts := make([]entity.Contact, 0, len(*response))
 	id := 0
@@ -110,6 +130,13 @@ func (r *ContactsResponse) ResponseToContacts(response *ContactsResponse) *[]ent
 	}
 
 	return &contacts
+}
+
+type ListUnisender struct {
+	Result []struct {
+		ID    int    `json:"id"`
+		Title string `json:"title"`
+	} `json:"result"`
 }
 
 type APIUnisenderRequest struct {

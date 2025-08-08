@@ -24,16 +24,16 @@ func (m *MemoryStorage) AddAccount(account *entity.Account) error {
 }
 
 //GetAccounts возвращает все аккаунты из in-memory хранилища
-func (m *MemoryStorage) GetAccounts() ([]*entity.Account, error) {
+func (m *MemoryStorage) GetAccounts() (*[]entity.Account, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	accounts := make([]*entity.Account, 0, len(m.accounts))
+	accounts := make([]entity.Account, 0, len(m.accounts))
 	for _, account := range m.accounts {
-		accounts = append(accounts, account)
+		accounts = append(accounts, *account)
 	}
 
-	return accounts, nil
+	return &accounts, nil
 }
 
 //GetAccount возвращает аккаунт по id из in-memory хранилища
@@ -59,7 +59,7 @@ func (m *MemoryStorage) GetAccountIntegrations(accountID int) (*[]entity.Integra
 	return &integrations, nil
 }
 
-//UpdateAccount обновляет аккаунт из in-memory хранилища
+//UpdateAccount обновляет аккаунт иsз in-memory хранилища
 func (m *MemoryStorage) UpdateAccount(account *entity.Account) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -85,6 +85,6 @@ func (m *MemoryStorage) DeleteAccount(id int) error {
 	return nil
 }
 
-func (m *MemoryStorage) SaveContacts(contact *[]entity.Contact) error {
-	return nil
-}
+// func (m *MemoryStorage) SaveContacts(contact *[]entity.Contact) error {
+// 	return nil
+// }

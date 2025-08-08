@@ -21,10 +21,10 @@ func NewDatabaseStorage(cfg *config.Config) (*Storage, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.Migrator().DropTable(&entity.Token{})
-	db.Migrator().DropTable(&entity.Contact{})
-	db.Migrator().DropTable(&entity.Integration{})
-	db.Migrator().DropTable(&entity.Account{})
+	// db.Migrator().DropTable(&entity.Token{})
+	// db.Migrator().DropTable(&entity.Contact{})
+	// db.Migrator().DropTable(&entity.Integration{})
+	// db.Migrator().DropTable(&entity.Account{})
 	err = db.AutoMigrate(
 		&entity.Account{},
 		&entity.Integration{},

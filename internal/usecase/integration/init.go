@@ -17,9 +17,6 @@ type integrationRepo interface {
 	UpdateIntegration(integration *entity.Integration) error
 	DeleteIntegration(accountID int) error
 	ReturnByClientID(clientID string) (*entity.Integration, error)
-	UpdateToken(token *entity.Token) error
-	GetTokens(id int) (*entity.Token, error)
-	AddToken(token *entity.Token) error
 }
 
 //New создает новый репозиторий IntegrationUseCase
