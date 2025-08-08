@@ -38,12 +38,12 @@ func NewAccountRoutes(handler *gin.RouterGroup, uc accountUC.UseCase, client *ht
 		h.PUT("/:id", r.updateAccount)
 		h.DELETE("/:id", r.deleteAccount)
 		h.GET("/:id/contacts", r.getAccountContacts)
-		h.GET("/:id/unisender", r.authorizeInUnisender)
+		h.GET("/:id/unisender", r.getListsFromUnisender)
 	}
 }
 
-//authorizeInUnisender
-func (r *accountRoutes) authorizeInUnisender(c *gin.Context) {
+//getListsFromUnisender
+func (r *accountRoutes) getListsFromUnisender(c *gin.Context) {
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -51,8 +51,6 @@ func (r *accountRoutes) authorizeInUnisender(c *gin.Context) {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	fmt.Println(id)
 
 	integrationsPtr, err := r.uc.ReturnIntegrations(id)
 	if err != nil {
@@ -62,23 +60,17 @@ func (r *accountRoutes) authorizeInUnisender(c *gin.Context) {
 	}
 
 	integrations := *integrationsPtr
-	idOfSlice := 0
 
+	var unisenderKey string
 	for _, integration := range integrations {
 		if integration.Token.UnisenderKey != "" {
+			unisenderKey = integration.Token.UnisenderKey
 			break
 		}
-		idOfSlice++
 	}
 
-	unisenderKey := integrations[idOfSlice].Token.UnisenderKey
-	fmt.Println(unisenderKey)
 	fullURL := "https://api.unisender.com/ru/api/getLists?format=json&api_key=" + unisenderKey
-	//fullURL := MakeRouteURL(unisenderKey, baseURL)
 
-	fmt.Println(fullURL)
-
-	//этот момент переделать
 	var data url.Values = url.Values{}
 	req, err := http.NewRequest(http.MethodGet, fullURL, bytes.NewBufferString(data.Encode()))
 	if err != nil {
@@ -94,16 +86,15 @@ func (r *accountRoutes) authorizeInUnisender(c *gin.Context) {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+	defer req.Body.Close()
 
 	responseData := &ListUnisender{}
-	//fmt.Printf("body: %v", &body)
+
 	if err := json.Unmarshal(body, &responseData); err != nil {
 		log.Printf("error while unmarshal data func auth unisender: %v", err)
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	// amount := responseData.ResponseToContactsAmount(&responseData)
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":   "success",
