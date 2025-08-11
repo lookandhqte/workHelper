@@ -27,6 +27,7 @@ func NewDatabaseStorage(cfg *config.Config) (*Storage, error) {
 		&entity.Integration{},
 		&entity.Token{},
 		&entity.Contact{},
+		&entity.GlobalContact{},
 	)
 	if err != nil {
 		return nil, err
