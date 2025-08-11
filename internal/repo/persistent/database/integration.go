@@ -3,12 +3,14 @@ package database
 import (
 	"errors"
 
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 	"gorm.io/gorm"
 )
 
 //AddIntegration добавляет интеграцию
 func (d *Storage) AddIntegration(integration *entity.Integration) error {
+	integration.Token.UnisenderKey = config.Load().UnisenderKey
 	return d.DB.Create(integration).Error
 }
 

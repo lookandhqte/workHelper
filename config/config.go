@@ -16,6 +16,7 @@ type Config struct {
 	DSN           string
 	StorageType   string
 	BeanstalkAddr string
+	UnisenderKey  string
 }
 
 //Load подгрузка .env и создание конфига
@@ -31,6 +32,7 @@ func Load() *Config {
 		DSN:           getEnv("DSN", ""),
 		StorageType:   getEnv("STORAGE_TYPE", "in-memory"),
 		BeanstalkAddr: getEnv("BEANSTALK_ADDR", ""),
+		UnisenderKey:  getEnv("UNISENDER_KEY", ""),
 	}
 }
 
