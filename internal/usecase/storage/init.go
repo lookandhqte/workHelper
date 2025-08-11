@@ -16,7 +16,6 @@ type Storage interface {
 	UpdateIntegration(integration *entity.Integration) error
 	DeleteIntegration(accountID int) error
 	ReturnByClientID(clientID string) (*entity.Integration, error)
-	// SaveContacts(contact *[]entity.Contact) error
 }
 
 //DB Глобальная переенная хранилища

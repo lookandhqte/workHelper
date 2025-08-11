@@ -111,10 +111,12 @@ func (a *App) Run() {
 
 						if expiryTime-int(now) <= RefreshThreshold {
 
-							idOfAcc := strconv.Itoa(integration.ID)
+							idOfInt := strconv.Itoa(integration.ID)
+							idOfAcc := strconv.Itoa(integration.AccountID)
 							base, _ := url.Parse("http://localhost:2020/v1/integrations/")
 							base.Path = path.Join(base.Path, idOfAcc)
-							base.Path = path.Join(base.Path, "/refresh")
+							base.Path = path.Join(base.Path, "/refresh/")
+							base.Path = path.Join(base.Path, idOfInt)
 							fullURL := base.String()
 							req, _ := http.NewRequest(http.MethodPost, fullURL, nil)
 							client := &http.Client{}

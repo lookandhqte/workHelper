@@ -48,13 +48,3 @@ func (d *Storage) DeleteAccount(id int) error {
 	result := d.DB.Delete(&entity.Account{}, id)
 	return result.Error
 }
-
-// //SaveContacts сохраняет контакты
-// func (d *Storage) SaveContacts(contact *[]entity.Contact) error {
-
-// 	result := d.DB.Save(&contact)
-// 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-// 		return errors.New("could not save contacts")
-// 	}
-// 	return result.Error
-// }

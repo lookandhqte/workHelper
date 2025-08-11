@@ -1,33 +1,27 @@
 package v1
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"strconv"
 	"time"
 
 	entity "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/provider"
 	accountUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
 	"github.com/gin-gonic/gin"
 )
 
 //accountRoutes роутер для аккаунта
 type accountRoutes struct {
-	uc     accountUC.UseCase
-	client *http.Client
+	uc       accountUC.UseCase
+	provider provider.Provider
 }
 
-const (
-	SlicesCapacity = 10
-)
-
 //NewAccountRoutes создает роуты для /accounts
-func NewAccountRoutes(handler *gin.RouterGroup, uc accountUC.UseCase, client *http.Client) {
-	r := &accountRoutes{uc: uc, client: client}
+func NewAccountRoutes(handler *gin.RouterGroup, uc accountUC.UseCase, provider provider.Provider) {
+	r := &accountRoutes{uc: uc, provider: provider}
 
 	h := handler.Group("/accounts")
 	{
@@ -37,166 +31,10 @@ func NewAccountRoutes(handler *gin.RouterGroup, uc accountUC.UseCase, client *ht
 		h.GET("/:id/integrations", r.getAccountIntegrations)
 		h.PUT("/:id", r.updateAccount)
 		h.DELETE("/:id", r.deleteAccount)
-		h.GET("/:id/contacts", r.getAccountContacts)
-		h.GET("/:id/unisender", r.getListsFromUnisender)
+		h.GET(":id/redirect", r.handleRedirect)
+		h.POST("/:id/refresh/:integration_id", r.needToRef)
+		h.POST("/:id/unisender", r.saveUnisenderToken)
 	}
-}
-
-//getListsFromUnisender
-func (r *accountRoutes) getListsFromUnisender(c *gin.Context) {
-
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		log.Printf("error while atoi id func auth unisender: %v", err)
-		errorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	integrationsPtr, err := r.uc.ReturnIntegrations(id)
-	if err != nil {
-		log.Printf("error while getting account integrations func auth unisender: %v", err)
-		errorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	integrations := *integrationsPtr
-
-	var unisenderKey string
-	for _, integration := range integrations {
-		if integration.Token.UnisenderKey != "" {
-			unisenderKey = integration.Token.UnisenderKey
-			break
-		}
-	}
-
-	fullURL := "https://api.unisender.com/ru/api/getLists?format=json&api_key=" + unisenderKey
-
-	var data url.Values = url.Values{}
-	req, err := http.NewRequest(http.MethodGet, fullURL, bytes.NewBufferString(data.Encode()))
-	if err != nil {
-		log.Printf("error while new request func auth unisender: %v", err)
-		errorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	body, err := SendRequest(req, *r.client)
-	if err != nil {
-		log.Printf("error while sending request func auth unisender: %v", err)
-		errorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-	defer req.Body.Close()
-
-	responseData := &ListUnisender{}
-
-	if err := json.Unmarshal(body, &responseData); err != nil {
-		log.Printf("error while unmarshal data func auth unisender: %v", err)
-		errorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"status":   "success",
-		"response": responseData,
-	})
-}
-
-//PreparePostRequest готовит post запрос
-func (r *accountRoutes) PrepareGetRequest(url string, data url.Values) (*http.Request, error) {
-	req, err := http.NewRequest(http.MethodGet, url, bytes.NewBufferString(data.Encode()))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	return req, nil
-}
-
-//getAccountContacts возвращает контакты аккаунта по первой authed интеграции
-func (r *accountRoutes) getAccountContacts(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		log.Printf("error while atoi id func get account contacts: %v", err)
-		errorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	integrationsPtr, err := r.uc.ReturnIntegrations(id)
-	if err != nil {
-		log.Printf("error while getting account integrations: %v", err)
-		errorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-	integrations := *integrationsPtr
-	idOfAuthedIntegration := 0
-	idInSlice := 0
-	for _, integration := range integrations {
-		if integration.Token != nil {
-			idOfAuthedIntegration = integration.ID
-			break
-		}
-		idInSlice++
-	}
-
-	tokens := integrations[idInSlice].Token.AccessToken
-	contactsResponse, err := r.GetContacts(tokens)
-	if err != nil {
-		log.Printf("error while getting contacts func get account contacts: %v", err)
-		errorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-	contacts := contactsResponse.ResponseToContacts(contactsResponse)
-
-	account, err := r.uc.ReturnOne(integrations[idOfAuthedIntegration].ID)
-	if err != nil {
-		log.Printf("error while returning one account func get account contacts: %v", err)
-		errorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	account.AccountContacts = *contacts
-
-	err = r.uc.Update(account)
-
-	if err != nil {
-		log.Printf("error while updating account: %v", err)
-		errorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"status":          "success",
-		"contacts":        contacts,
-		"updated account": account,
-	})
-
-}
-
-//GetContacts возвращает контакты
-func (r *accountRoutes) GetContacts(token string) (*ContactsResponse, error) {
-	fullURL := MakeRouteURL("/api/v4/contacts", "")
-
-	req, err := http.NewRequest(http.MethodGet, fullURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %v", err)
-	}
-
-	req.Header.Add("Authorization", "Bearer "+token)
-	req.Header.Add("Content-Type", "application/json")
-
-	body, err := SendRequest(req, *r.client)
-	if err != nil {
-		return nil, fmt.Errorf("error while sending request to get contacts")
-	}
-
-	var apiResponse APIContactsResponse
-
-	if err := json.Unmarshal(body, &apiResponse); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
-	}
-
-	return apiResponse.ToContactsResponse(), nil
-
 }
 
 //createAccount создает акаунт
@@ -303,4 +141,148 @@ func (r *accountRoutes) deleteAccount(c *gin.Context) {
 //errorResponse ответ с ошибкой
 func errorResponse(c *gin.Context, code int, err string) {
 	c.AbortWithStatusJSON(code, fmt.Errorf("error: %v", err).Error())
+}
+
+//saveUnisenderToken сохраняет интеграции токен unisender
+func (r *accountRoutes) saveUnisenderToken(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		log.Printf("err while converting br: %v", err)
+	}
+	var request APIUnisenderRequestDTO
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	unisenderKey := request.UnisenderKey
+	integration, err := r.findIntegrationBy("nilnessToken", id, 0, "")
+	if err != nil {
+		log.Printf("err while find int by func save unisender: %v", err)
+	}
+	integration.Token.UnisenderKey = unisenderKey
+	account, err := r.uc.ReturnOne(id)
+	if err != nil {
+		log.Printf("err while returning acount func saveunisendertoken: %v", err)
+	}
+	if err := r.uc.Update(account); err != nil {
+		log.Printf("err while updating tokens: %v", err)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":        "success",
+		"unisender key": unisenderKey,
+	})
+}
+
+func (r *accountRoutes) findIntegrationBy(findcase string, accountID int, integrationID int, clientID string) (*entity.Integration, error) {
+	integrationsPtr, err := r.uc.ReturnIntegrations(accountID)
+	integrations := *integrationsPtr
+	if err != nil {
+		log.Printf("err while return integrations func find integration by: %v", err)
+	}
+	if findcase == "" {
+		return nil, fmt.Errorf("empty datacase")
+	}
+	switch findcase {
+	case "byIntegrationID":
+		for _, integration := range integrations {
+			if integration.ID == integrationID {
+				return &integration, nil
+			}
+		}
+	case "byClientID":
+		for _, integration := range integrations {
+			if integration.ClientID == clientID {
+				return &integration, nil
+			}
+		}
+	case "nilnessToken":
+		for _, integration := range integrations {
+			if integration.Token != nil {
+				return &integration, nil
+			}
+		}
+	default:
+		return nil, fmt.Errorf("no such integration")
+	}
+	return nil, fmt.Errorf("oh no my friend, no suchh datacase or integration.. : %v", err)
+}
+
+//needToRef обновляет токены при необходимости
+func (r *accountRoutes) needToRef(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		log.Printf("failed to parse id: %v", err)
+		return
+	}
+	integrationID, err := strconv.Atoi(c.Param("integration_id"))
+	if err != nil {
+		log.Printf("failed to parse int id: %v", err)
+		return
+	}
+	account, _ := r.uc.ReturnOne(id)
+
+	integration, err := r.findIntegrationBy("byIntegrationID", id, integrationID, "")
+	if err != nil {
+		log.Printf("failed find integration by -> need to ref: %v", err)
+	}
+	err = r.provider.Amo.UpdateTokens(integration)
+	if err != nil {
+		log.Printf("failed to update tokens func need to ref: %v", err)
+	}
+
+	if err := r.uc.Update(account); err != nil {
+		log.Printf("[Acc:%d] Failed to save tokens: %v", err)
+	}
+}
+
+//handleRedirect редирект
+func (r *accountRoutes) handleRedirect(c *gin.Context) {
+
+	id, err := strconv.Atoi(c.Query("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, fmt.Errorf("account id is required"))
+		return
+	}
+	code := c.Query("code")
+	clientID := c.Query("client_id")
+	if code == "" {
+		c.JSON(http.StatusBadRequest, fmt.Errorf("authorization code is required"))
+		return
+	}
+	integration, err := r.findIntegrationBy("byClientID", id, 0, clientID)
+	if err != nil {
+		log.Printf("failed to find integration func handle redirect: %v", err)
+	}
+	err = r.provider.Amo.GetTokens(integration)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+	account, err := r.uc.ReturnOne(id)
+	if err != nil {
+		log.Printf("error while getting account: %v", err)
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	contacts, err := r.provider.Amo.GetContacts(integration.Token.AccessToken)
+	if err != nil {
+		log.Printf("error while getting account contacts in provider: %v", err)
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	account.AccountContacts = *contacts
+
+	if err := r.uc.Update(account); err != nil {
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"account": account,
+	})
 }
