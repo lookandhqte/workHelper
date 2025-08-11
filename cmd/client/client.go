@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"log"
+	"os"
+	"strconv"
 
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/api/grpc/account"
 	grpc "google.golang.org/grpc"
@@ -10,14 +12,13 @@ import (
 )
 
 func main() {
-	// if len(os.Args) < 2 {
-	// 	log.Fatal("Usage: client <account_id>")
-	// }
-	// accountID, err := strconv.Atoi(os.Args[1])
-	// if err != nil {
-	// 	log.Fatalf("Invalid account_id: %v", err)
-	// }
-	accountID := 1
+	if len(os.Args) < 2 {
+		log.Fatal("Usage: client <account_id>")
+	}
+	accountID, err := strconv.Atoi(os.Args[1])
+	if err != nil {
+		log.Fatalf("Invalid account_id: %v", err)
+	}
 
 	conn, err := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials())) //NewCredentials()))
 	if err != nil {
