@@ -13,7 +13,6 @@ import (
 )
 
 const (
-	apiKey  = "6ga9onuuy66q3qdr65r488djfeg176o693uhcz3a"
 	baseURL = "https://api.unisender.com"
 )
 
