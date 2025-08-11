@@ -12,6 +12,7 @@ type MemoryStorage struct {
 	mu            sync.RWMutex
 	accounts      map[int]*entity.Account
 	integrations  map[int]*entity.Integration
+	contacts      map[int]*entity.GlobalContact
 	lastAccountID int
 	cache         *cache.Cache
 }
@@ -26,6 +27,7 @@ func NewMemoryStorage(c *cache.Cache) *MemoryStorage {
 	return &MemoryStorage{
 		accounts:      make(map[int]*entity.Account),
 		integrations:  make(map[int]*entity.Integration),
+		contacts:      make(map[int]*entity.GlobalContact),
 		lastAccountID: 0,
 		cache:         c,
 	}

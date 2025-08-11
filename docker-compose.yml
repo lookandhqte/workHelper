@@ -1,12 +1,18 @@
 version: '3.8'
-# TEST_DB_HOST=mysql_test                       
-# TEST_DB_DRIVER=mysql
-# TEST_API_SECRET=98hbun98h
-# TEST_DB_USER=steven
-# TEST_DB_PASSWORD=here
-# TEST_DB_NAME=fullstack_api_test
-# TEST_DB_PORT=3306
+
 services:
+  beanstalkd:
+    container_name: ddev-beanstalkd
+    image: schickling/beanstalkd
+    restart: "no"
+    expose:
+      - 11300 # (порт по умолчанию для beanstalkd)
+    ports:
+      - 11300:11300
+    labels:
+      com.ddev.site-name: "sitename"
+    volumes:
+      - ".:/mnt/ddev_config"
   mysql:
     image: mysql:5.7
     container_name: amocrm_mysql

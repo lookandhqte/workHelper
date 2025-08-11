@@ -10,11 +10,12 @@ import (
 
 //Config структура конфига
 type Config struct {
-	JWTSecret   string
-	HTTPAddr    string
-	RedirectURI string
-	DSN         string
-	StorageType string
+	JWTSecret     string
+	HTTPAddr      string
+	RedirectURI   string
+	DSN           string
+	StorageType   string
+	BeanstalkAddr string
 }
 
 //Load подгрузка .env и создание конфига
@@ -24,11 +25,12 @@ func Load() *Config {
 	}
 
 	return &Config{
-		JWTSecret:   getEnv("JWT_SECRET", ""),
-		HTTPAddr:    getEnv("PORT", ":2020"),
-		RedirectURI: getEnv("REDIRECT_URI", ""),
-		DSN:         getEnv("DSN", ""),
-		StorageType: getEnv("STORAGE_TYPE", "in-memory"),
+		JWTSecret:     getEnv("JWT_SECRET", ""),
+		HTTPAddr:      getEnv("PORT", ":2020"),
+		RedirectURI:   getEnv("REDIRECT_URI", ""),
+		DSN:           getEnv("DSN", ""),
+		StorageType:   getEnv("STORAGE_TYPE", "in-memory"),
+		BeanstalkAddr: getEnv("BEANSTALK_ADDR", ""),
 	}
 }
 

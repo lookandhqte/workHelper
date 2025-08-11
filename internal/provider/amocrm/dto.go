@@ -89,3 +89,20 @@ func (r *APIContactsResponseDTO) ProcessContacts() *[]entity.Contact {
 
 	return &contacts
 }
+
+// ConvertToGlobalContacts преобразует []Contact в []GlobalContact
+func ConvertToGlobalContacts(contacts *[]entity.Contact) []entity.GlobalContact {
+	globalContacts := make([]entity.GlobalContact, 0, len(*contacts))
+
+	for _, contact := range *contacts {
+		globalContact := entity.GlobalContact{
+			AccountID: contact.AccountID,
+			Email:     contact.Email,
+			Name:      contact.Name,
+			Status:    contact.Status,
+		}
+		globalContacts = append(globalContacts, globalContact)
+	}
+
+	return globalContacts
+}
