@@ -8,7 +8,7 @@ import (
 	"time"
 
 	entity "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/producer"
+	producer "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/producer"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/provider"
 	accountUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
 	"github.com/gin-gonic/gin"
@@ -35,7 +35,6 @@ func NewAccountRoutes(handler *gin.RouterGroup, uc accountUC.UseCase, provider p
 		h.DELETE("/:id", r.deleteAccount)
 		h.GET(":id/redirect", r.handleRedirect)
 		h.POST("/:id/refresh/:integration_id", r.needToRef)
-		h.POST("/:id/unisender", r.saveUnisenderToken)
 	}
 }
 
@@ -143,38 +142,6 @@ func (r *accountRoutes) deleteAccount(c *gin.Context) {
 //errorResponse ответ с ошибкой
 func errorResponse(c *gin.Context, code int, err string) {
 	c.AbortWithStatusJSON(code, fmt.Errorf("error: %v", err).Error())
-}
-
-//saveUnisenderToken сохраняет интеграции токен unisender
-func (r *accountRoutes) saveUnisenderToken(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		log.Printf("err while converting br: %v", err)
-	}
-	var request APIUnisenderRequestDTO
-	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	unisenderKey := request.UnisenderKey
-	integration, err := r.findIntegrationBy("nilnessToken", id, 0, "")
-	if err != nil {
-		log.Printf("err while find int by func save unisender: %v", err)
-	}
-	integration.Token.UnisenderKey = unisenderKey
-	account, err := r.uc.ReturnOne(id)
-	if err != nil {
-		log.Printf("err while returning acount func saveunisendertoken: %v", err)
-	}
-	if err := r.uc.Update(account); err != nil {
-		log.Printf("err while updating tokens: %v", err)
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"status":        "success",
-		"unisender key": unisenderKey,
-	})
 }
 
 func (r *accountRoutes) findIntegrationBy(findcase string, accountID int, integrationID int, clientID string) (*entity.Integration, error) {
