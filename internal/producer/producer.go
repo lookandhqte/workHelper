@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	v1 "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/controller/http/v1"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 	"github.com/beanstalkd/go-beanstalk"
 )
@@ -48,7 +47,7 @@ func (p *TaskProducer) EnqueueSyncContactsTask(accountID int, integrationID int,
 	return err
 }
 
-func (p *TaskProducer) EnqueueSyncWebhookContactsTask(webhookData v1.WebhookContactDTO) error {
+func (p *TaskProducer) EnqueueSyncWebhookContactsTask(webhookData WebhookContactDTO) error {
 	conn, err := beanstalk.Dial("tcp", p.addr)
 	if err != nil {
 		return fmt.Errorf("beanstalk dial failed: %w", err)

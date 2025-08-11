@@ -18,7 +18,7 @@ func (d *Storage) UpdateGlobalContacts(contacts []entity.GlobalContact) error {
 		for _, contact := range contacts {
 			if contact.ID != 0 {
 				if err := tx.Model(&entity.GlobalContact{}).
-					Where("id = ?", contact.ID).
+					Where("account_id = ?", contact.AccountID).
 					Updates(map[string]interface{}{
 						"name":   contact.Name,
 						"email":  contact.Email,

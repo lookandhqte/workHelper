@@ -30,20 +30,19 @@ func composeDependencies() *dependencies {
 	}
 
 	storage := storageUC.NewStorage(memoryCache, cfg)
-	tasksProducer := producer.NewTaskProducer(cfg.BeanstalkAddr)
 	return &dependencies{
 		cfg:           cfg,
 		AccountUC:     accountUC.New(*storage),
 		IntegrationUC: integrationUC.New(*storage),
 		ContactsUC:    contactsUC.New(*storage),
-		TasksProducer: tasksProducer,
+		TasksProducer: producer.NewTaskProducer(cfg.BeanstalkAddr),
 	}
 }
 
 func setupRouter(deps *dependencies) *gin.Engine {
 	router := gin.Default()
 
-	controllerhttp.NewRouter(router, *deps.AccountUC, *deps.IntegrationUC, *deps.TasksProducer)
+	controllerhttp.NewRouter(router, *deps.AccountUC, *deps.IntegrationUC, *deps.TasksProducer, *deps.ContactsUC)
 
 	return router
 }
