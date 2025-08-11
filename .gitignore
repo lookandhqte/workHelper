@@ -3,3 +3,4 @@
 *.env
 *.yml
 Makefile
+*.proto

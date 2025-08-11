@@ -73,6 +73,8 @@ func (a *App) Run() {
 	deps := composeDependencies()
 	router := setupRouter(deps)
 
+	a.StartGRPCServer(deps.AccountUC)
+
 	a.server = &http.Server{
 		Addr:    deps.cfg.HTTPAddr,
 		Handler: router,

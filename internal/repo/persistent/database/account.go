@@ -9,8 +9,7 @@ import (
 
 //AddAccount создает аккаунт
 func (d *Storage) AddAccount(account *entity.Account) error {
-	result := d.DB.Create(account)
-	return result.Error
+	return d.DB.Create(account).Error
 }
 
 //GetAccounts возвращает все аккаунты
@@ -39,12 +38,10 @@ func (d *Storage) GetAccountIntegrations(accountID int) (*[]entity.Integration, 
 
 //UpdateAccount обновляет аккаунт
 func (d *Storage) UpdateAccount(account *entity.Account) error {
-	result := d.DB.Save(account)
-	return result.Error
+	return d.DB.Save(account).Error
 }
 
 //DeleteAccount удаляет аккаунт
 func (d *Storage) DeleteAccount(id int) error {
-	result := d.DB.Delete(&entity.Account{}, id)
-	return result.Error
+	return d.DB.Delete(&entity.Account{}, id).Error
 }

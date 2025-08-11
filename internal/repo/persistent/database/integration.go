@@ -9,8 +9,7 @@ import (
 
 //AddIntegration добавляет интеграцию
 func (d *Storage) AddIntegration(integration *entity.Integration) error {
-	result := d.DB.Create(integration)
-	return result.Error
+	return d.DB.Create(integration).Error
 }
 
 //GetIntegration возвращает интеграцию по id
@@ -42,8 +41,7 @@ func (d *Storage) UpdateIntegration(integration *entity.Integration) error {
 
 //DeleteIntegration возвращает интеграцию по clientID
 func (d *Storage) DeleteIntegration(id int) error {
-	result := d.DB.Delete(&entity.Integration{}, id)
-	return result.Error
+	return d.DB.Delete(&entity.Integration{}, id).Error
 }
 
 //ReturnByClientID возвращает интеграцию по clientID
