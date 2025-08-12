@@ -54,8 +54,10 @@ func (r *contactsRoutes) updateContacts(c *gin.Context) {
 	}
 
 	contact := ConvertWebhookToGlobalContactsDTO(data)
+
 	r.taskProducer.EnqueueCreateContactTask(contact)
 	r.worker.ResolveCreateContactTask()
+
 	if err := r.uc.Create(contact); err != nil {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return

@@ -9,27 +9,7 @@ import (
 	entity "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
 )
 
-type APIUnisenderRequestDTO struct {
-	UnisenderKey string `json:"unisender_key"`
-	AccountID    int    `json:"account_id"`
-}
-
-// ConvertToGlobalContacts преобразует []Contact в []GlobalContact
-func ConvertToGlobalContactsDTO(contacts *[]entity.Contact) []entity.GlobalContact {
-	globalContacts := make([]entity.GlobalContact, 0, len(*contacts))
-
-	for _, contact := range *contacts {
-		globalContact := entity.GlobalContact{
-			AccountID: contact.AccountID,
-			Email:     contact.Email,
-			Status:    contact.Status,
-		}
-		globalContacts = append(globalContacts, globalContact)
-	}
-
-	return globalContacts
-}
-
+//ConvertWebhookToGlobalContactsDTO переводит данные от вебхука в GlobalContact
 func ConvertWebhookToGlobalContactsDTO(formData map[string][]string) *entity.GlobalContact {
 	globalContact := &entity.GlobalContact{}
 	if ids, ok := formData["account[id]"]; ok && len(ids) > 0 {
