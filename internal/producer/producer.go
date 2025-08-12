@@ -18,24 +18,8 @@ func NewTaskProducer(addr string) *TaskProducer {
 }
 
 const (
-	beforeNextTask = 10
+	beforeNextTask = 120
 )
-
-func (p *TaskProducer) EnqueueSyncContactsTask(contacts []entity.GlobalContact) error {
-	conn, err := beanstalk.Dial("tcp", p.addr)
-	if err != nil {
-		return fmt.Errorf("beanstalk dial failed: %w", err)
-	}
-	defer conn.Close()
-
-	payload, err := json.Marshal(contacts)
-	if err != nil {
-		return fmt.Errorf("json marshal failed: %w", err)
-	}
-
-	_, err = conn.Put(payload, 1, 0, beforeNextTask*time.Second)
-	return err
-}
 
 func (p *TaskProducer) EnqueueCreateContactTask(globalContact *entity.GlobalContact) error {
 	conn, err := beanstalk.Dial("tcp", p.addr)
@@ -49,6 +33,6 @@ func (p *TaskProducer) EnqueueCreateContactTask(globalContact *entity.GlobalCont
 		return fmt.Errorf("json marshal failed: %w", err)
 	}
 
-	_, err = conn.Put(payload, 1, 0, 120*time.Second)
+	_, err = conn.Put(payload, 1, 0, beforeNextTask*time.Second)
 	return err
 }

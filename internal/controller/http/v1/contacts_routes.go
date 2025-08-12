@@ -9,21 +9,21 @@ import (
 	"net/url"
 
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/producer"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/provider"
 	contactsUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/contacts"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/worker"
 	"github.com/gin-gonic/gin"
 )
 
 //contactRoutes роутер для аккаунта
 type contactsRoutes struct {
 	uc           contactsUC.UseCase
-	provider     provider.Provider
 	taskProducer producer.TaskProducer
+	worker       worker.TaskWorker
 }
 
 //NewContactRoutes создает роуты для /contacts
-func NewContactsRoutes(handler *gin.RouterGroup, uc contactsUC.UseCase, provider provider.Provider, taskProducer producer.TaskProducer) {
-	r := &contactsRoutes{uc: uc, provider: provider, taskProducer: taskProducer}
+func NewContactsRoutes(handler *gin.RouterGroup, uc contactsUC.UseCase, taskProducer producer.TaskProducer, worker worker.TaskWorker) {
+	r := &contactsRoutes{uc: uc, taskProducer: taskProducer, worker: worker}
 
 	h := handler.Group("/contacts")
 	{
@@ -54,7 +54,8 @@ func (r *contactsRoutes) updateContacts(c *gin.Context) {
 	}
 
 	contact := ConvertWebhookToGlobalContactsDTO(data)
-
+	r.taskProducer.EnqueueCreateContactTask(contact)
+	r.worker.ResolveCreateContactTask()
 	if err := r.uc.Create(contact); err != nil {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return

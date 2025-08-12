@@ -9,6 +9,7 @@ import (
 	contactsUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/contacts"
 	integrationUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/integration"
 	storageUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/storage"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/worker"
 	cache "git.amocrm.ru/gelzhuravleva/amocrm_golang/pkg/cache"
 	"github.com/gin-gonic/gin"
 )
@@ -20,6 +21,7 @@ type dependencies struct {
 	ContactsUC    *contactsUC.UseCase
 	TasksProducer *producer.TaskProducer
 	Provider      *provider.Provider
+	Worker        *worker.TaskWorker
 }
 
 func composeDependencies() *dependencies {
@@ -37,15 +39,16 @@ func composeDependencies() *dependencies {
 		AccountUC:     accountUC.New(*storage),
 		IntegrationUC: integrationUC.New(*storage),
 		ContactsUC:    contactsUC.New(*storage),
-		TasksProducer: producer.NewTaskProducer(cfg.BeanstalkAddr),
 		Provider:      provider.New(),
+		TasksProducer: producer.NewTaskProducer(cfg.BeanstalkAddr),
+		Worker:        worker.NewTaskWorker(cfg.BeanstalkAddr),
 	}
 }
 
 func setupRouter(deps *dependencies) *gin.Engine {
 	router := gin.Default()
 
-	controllerhttp.NewRouter(router, *deps.AccountUC, *deps.IntegrationUC, *deps.TasksProducer, *deps.Provider, *deps.ContactsUC)
+	controllerhttp.NewRouter(router, *deps.AccountUC, *deps.IntegrationUC, *deps.ContactsUC, *deps.TasksProducer, *deps.Provider, *deps.Worker)
 
 	return router
 }

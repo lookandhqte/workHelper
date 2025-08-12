@@ -8,7 +8,6 @@ import (
 	"time"
 
 	entity "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
-	producer "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/producer"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/provider"
 	accountUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
 	"github.com/gin-gonic/gin"
@@ -16,14 +15,13 @@ import (
 
 //accountRoutes роутер для аккаунта
 type accountRoutes struct {
-	uc           accountUC.UseCase
-	provider     provider.Provider
-	taskProducer producer.TaskProducer
+	uc       accountUC.UseCase
+	provider provider.Provider
 }
 
 //NewAccountRoutes создает роуты для /accounts
-func NewAccountRoutes(handler *gin.RouterGroup, uc accountUC.UseCase, provider provider.Provider, taskProducer producer.TaskProducer) {
-	r := &accountRoutes{uc: uc, provider: provider, taskProducer: taskProducer}
+func NewAccountRoutes(handler *gin.RouterGroup, uc accountUC.UseCase, provider provider.Provider) {
+	r := &accountRoutes{uc: uc, provider: provider}
 
 	h := handler.Group("/accounts")
 	{
@@ -248,10 +246,6 @@ func (r *accountRoutes) handleRedirect(c *gin.Context) {
 	if err := r.uc.Update(account); err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
-	}
-	globalContacts := ConvertToGlobalContactsDTO(contacts)
-	if err := r.taskProducer.EnqueueSyncContactsTask(globalContacts); err != nil {
-		log.Printf("enqueue task failed: %v", err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{

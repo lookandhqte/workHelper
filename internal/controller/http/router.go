@@ -7,6 +7,7 @@ import (
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/contacts"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/integration"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/worker"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,6 +18,7 @@ type Router struct {
 	contactsUC    contacts.UseCase
 	provider      provider.Provider
 	producer      producer.TaskProducer
+	worker        worker.TaskWorker
 }
 
 //NewRouter создает новый роутер
@@ -24,9 +26,10 @@ func NewRouter(
 	r *gin.Engine,
 	accountUC account.UseCase,
 	integrationUC integration.UseCase,
+	contactsUC contacts.UseCase,
 	producer producer.TaskProducer,
 	provider provider.Provider,
-	contactsUC contacts.UseCase,
+	worker worker.TaskWorker,
 ) {
 	router := &Router{
 		accountUC:     accountUC,
@@ -34,6 +37,7 @@ func NewRouter(
 		provider:      provider,
 		producer:      producer,
 		contactsUC:    contactsUC,
+		worker:        worker,
 	}
 
 	api := r.Group("/v1")
@@ -46,12 +50,12 @@ func NewRouter(
 
 //accountRoutes создает роуты для аккаунта
 func (r *Router) accountRoutes(api *gin.RouterGroup) {
-	v1.NewAccountRoutes(api, r.accountUC, r.provider, r.producer)
+	v1.NewAccountRoutes(api, r.accountUC, r.provider)
 }
 
 //accountRoutes создает роуты для аккаунта
 func (r *Router) contactsRoutes(api *gin.RouterGroup) {
-	v1.NewContactsRoutes(api, r.contactsUC, r.provider, r.producer)
+	v1.NewContactsRoutes(api, r.contactsUC, r.producer, r.worker)
 }
 
 //integrationRoutes создает роуты для интеграций
