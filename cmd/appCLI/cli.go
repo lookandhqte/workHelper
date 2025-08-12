@@ -1,13 +1,14 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
+	"os/exec"
+	"os/signal"
+	"syscall"
 
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/app"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/worker"
 	"github.com/urfave/cli/v2"
 )
 
@@ -39,35 +40,36 @@ func main() {
 				},
 				Action: func(c *cli.Context) error {
 					numWorkers := c.Int("workers")
-					ourApp.AddTask(func(ctx context.Context) {
-						workers := worker.NewTaskWorkers(cfg.BeanstalkAddr, numWorkers)
 
-						for i := 0; i < numWorkers; i++ {
-							go func() {
-								defer func() {
-									if r := recover(); r != nil {
-										log.Printf("Worker panic: %v", r)
-									}
-								}()
-								for {
-									select {
-									case <-ctx.Done():
-										return
-									default:
-										_, err := workers.ResolveCreateContactTask(workers)
-										if err != nil {
-											log.Printf("Worker error: %v", err)
-										}
-									}
-								}
-							}()
+					beanstalkAddr := cfg.BeanstalkAddr
+					processes := make([]*exec.Cmd, 0, numWorkers)
+
+					for i := 0; i < numWorkers; i++ {
+						cmd := exec.Command("./worker", beanstalkAddr)
+						cmd.Stdout = os.Stdout
+						cmd.Stderr = os.Stderr
+
+						if err := cmd.Start(); err != nil {
+							log.Printf("Failed to start worker %d: %v", i+1, err)
+							continue
 						}
 
-						<-ctx.Done()
-						log.Println("All workers stopped")
-					})
-					return nil
+						processes = append(processes, cmd)
+						log.Printf("Started worker %d (PID: %d)", i+1, cmd.Process.Pid)
+					}
 
+					sigChan := make(chan os.Signal, 1)
+					signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+					<-sigChan
+
+					log.Println("Stopping workers...")
+					for _, cmd := range processes {
+						if cmd.Process != nil {
+							cmd.Process.Signal(syscall.SIGTERM)
+						}
+					}
+
+					return nil
 				},
 			},
 		},
