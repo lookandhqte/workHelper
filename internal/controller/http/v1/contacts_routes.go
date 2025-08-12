@@ -53,11 +53,6 @@ func (r *contactsRoutes) updateContacts(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("Parsed form data:", data)
-
-	exampleValue := data.Get("contacts[add][0][id]")
-	fmt.Println("Extracted contact ID:", exampleValue)
-
 	contact := ConvertWebhookToGlobalContactsDTO(data)
 
 	if err := r.uc.Create(contact); err != nil {

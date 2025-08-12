@@ -25,12 +25,14 @@ func NewRouter(
 	accountUC account.UseCase,
 	integrationUC integration.UseCase,
 	producer producer.TaskProducer,
+	provider provider.Provider,
 	contactsUC contacts.UseCase,
 ) {
 	router := &Router{
 		accountUC:     accountUC,
 		integrationUC: integrationUC,
-		provider:      *provider.New(),
+		provider:      provider,
+		producer:      producer,
 		contactsUC:    contactsUC,
 	}
 
