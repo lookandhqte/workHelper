@@ -10,7 +10,6 @@ import (
 
 	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/producer"
 	contactsUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/contacts"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/worker"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,12 +17,11 @@ import (
 type contactsRoutes struct {
 	uc           contactsUC.UseCase
 	taskProducer producer.TaskProducer
-	workers      *worker.TaskWorkers
 }
 
 //NewContactRoutes создает роуты для /contacts
-func NewContactsRoutes(handler *gin.RouterGroup, uc contactsUC.UseCase, taskProducer producer.TaskProducer, workers *worker.TaskWorkers) {
-	r := &contactsRoutes{uc: uc, taskProducer: taskProducer, workers: workers}
+func NewContactsRoutes(handler *gin.RouterGroup, uc contactsUC.UseCase, taskProducer producer.TaskProducer) {
+	r := &contactsRoutes{uc: uc, taskProducer: taskProducer}
 
 	h := handler.Group("/contacts")
 	{
@@ -56,9 +54,6 @@ func (r *contactsRoutes) updateContacts(c *gin.Context) {
 	contact := ConvertWebhookToGlobalContactsDTO(data)
 
 	r.taskProducer.EnqueueCreateContactTask(contact)
-
-	worker := r.workers.GetAvailableWorker(r.workers)
-	worker.ResolveCreateContactTask()
 
 	if err := r.uc.Create(contact); err != nil {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
