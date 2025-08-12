@@ -15,6 +15,10 @@ func (m *MemoryStorage) UpdateGlobalContacts(contacts []entity.GlobalContact) er
 }
 
 // DeleteAccountContacts удаляет все контакты
-func (dm *MemoryStorage) DeleteAccountContacts(accountID int) error {
+func (m *MemoryStorage) DeleteAccountContacts(accountID int) error {
+	return nil
+}
+
+func (m *MemoryStorage) AddContact(contact *entity.GlobalContact) error {
 	return nil
 }

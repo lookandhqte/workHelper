@@ -16,3 +16,7 @@ func (uc *UseCase) Update(contacts []entity.GlobalContact) error {
 func (uc *UseCase) Delete(id int) error {
 	return uc.repo.DeleteAccountContacts(id)
 }
+
+func (uc *UseCase) Create(contact *entity.GlobalContact) error {
+	return uc.repo.AddContact(contact)
+}

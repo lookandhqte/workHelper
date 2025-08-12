@@ -11,6 +11,7 @@ type UseCase struct {
 
 //contactRepo абстракция для определения методов репозитория
 type contactRepo interface {
+	AddContact(contact *entity.GlobalContact) error
 	GetAllGlobalContacts() ([]entity.GlobalContact, error)
 	UpdateGlobalContacts(contacts []entity.GlobalContact) error
 	DeleteAccountContacts(accountID int) error

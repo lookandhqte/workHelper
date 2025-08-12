@@ -1,11 +1,5 @@
 package producer
 
-import (
-	"strconv"
-
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
-)
-
 type WebhookContactDTO struct {
 	Contacts struct {
 		Add []struct {
@@ -38,36 +32,4 @@ type WebhookContactDTO struct {
 			Type      string `form:"type"`
 		} `form:"add"`
 	} `form:"contacts"`
-}
-
-// ConvertWebhookToGlobalContacts преобразует данные вебхука в срез GlobalContact
-func ConvertWebhookToGlobalContacts(webhookData WebhookContactDTO) ([]entity.GlobalContact, error) {
-	globalContacts := make([]entity.GlobalContact, 0, len(webhookData.Contacts.Add))
-
-	for _, apiContact := range webhookData.Contacts.Add {
-		accountID, _ := strconv.Atoi(apiContact.AccountID)
-
-		globalContact := entity.GlobalContact{
-			AccountID: accountID, // Преобразуем строку в int
-			Name:      apiContact.Name,
-			Status:    "unsync", // По умолчанию, статус "unsync"
-		}
-
-		var email string
-		for _, field := range apiContact.CustomFields {
-			if field.Code == "EMAIL" && len(field.Values) > 0 {
-				email = field.Values[0].Value
-			}
-		}
-
-		if email != "" {
-			globalContact.Email = email
-		} else {
-			globalContact.Status = "invalid"
-		}
-
-		globalContacts = append(globalContacts, globalContact)
-	}
-
-	return globalContacts, nil
 }

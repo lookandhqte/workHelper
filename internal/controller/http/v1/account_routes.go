@@ -249,7 +249,7 @@ func (r *accountRoutes) handleRedirect(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
-	globalContacts := ConvertToGlobalContacts(contacts)
+	globalContacts := ConvertToGlobalContactsDTO(contacts)
 	if err := r.taskProducer.EnqueueSyncContactsTask(id, integration.ID, globalContacts); err != nil {
 		log.Printf("enqueue task failed: %v", err)
 	}

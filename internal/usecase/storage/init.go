@@ -19,6 +19,7 @@ type Storage interface {
 	GetAllGlobalContacts() ([]entity.GlobalContact, error)
 	UpdateGlobalContacts(contacts []entity.GlobalContact) error
 	DeleteAccountContacts(accountID int) error
+	AddContact(contact *entity.GlobalContact) error
 }
 
 //DB Глобальная переенная хранилища

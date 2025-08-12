@@ -5,6 +5,10 @@ import (
 	"gorm.io/gorm"
 )
 
+func (d *Storage) AddContact(contact *entity.GlobalContact) error {
+	return d.DB.Create(contact).Error
+}
+
 // GetAllGlobalContacts возвращает все контакты из таблицы global_contacts
 func (d *Storage) GetAllGlobalContacts() ([]entity.GlobalContact, error) {
 	var contacts []entity.GlobalContact
@@ -20,7 +24,6 @@ func (d *Storage) UpdateGlobalContacts(contacts []entity.GlobalContact) error {
 				if err := tx.Model(&entity.GlobalContact{}).
 					Where("account_id = ?", contact.AccountID).
 					Updates(map[string]interface{}{
-						"name":   contact.Name,
 						"email":  contact.Email,
 						"status": contact.Status,
 					}).Error; err != nil {
