@@ -1,6 +1,0 @@
-
-*.txt
-*.env
-*.yml
-Makefile
-*.proto

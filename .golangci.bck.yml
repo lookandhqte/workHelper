@@ -1,0 +1,47 @@
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  disable-all: true
+  enable:
+    - gosimple
+    - govet
+    - staticcheck
+    - typecheck
+    - unused
+    - errcheck
+    - goconst
+    - gocritic
+    - gofmt
+    - goimports
+    - revive
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - dogsled
+    - dupl
+    - durationcheck
+    - exhaustive
+    - exportloopref
+    - gci
+    - gocheckcompilerdirectives
+    - gochecknoinits
+    - gocognit
+    - gocyclo
+    - godot
+    - godox
+    - goerr113
+    - goheader
+    - gomnd
+
+linters-settings:
+  revive:
+    rules:
+      - name: package-comments
+        disabled: true
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
