@@ -18,7 +18,7 @@ type Router struct {
 	contactsUC    contacts.UseCase
 	provider      provider.Provider
 	producer      producer.TaskProducer
-	worker        worker.TaskWorker
+	workers       worker.TaskWorkers
 }
 
 //NewRouter создает новый роутер
@@ -29,7 +29,7 @@ func NewRouter(
 	contactsUC contacts.UseCase,
 	producer producer.TaskProducer,
 	provider provider.Provider,
-	worker worker.TaskWorker,
+	workers worker.TaskWorkers,
 ) {
 	router := &Router{
 		accountUC:     accountUC,
@@ -37,7 +37,7 @@ func NewRouter(
 		provider:      provider,
 		producer:      producer,
 		contactsUC:    contactsUC,
-		worker:        worker,
+		workers:       workers,
 	}
 
 	api := r.Group("/v1")
@@ -55,7 +55,7 @@ func (r *Router) accountRoutes(api *gin.RouterGroup) {
 
 //accountRoutes создает роуты для аккаунта
 func (r *Router) contactsRoutes(api *gin.RouterGroup) {
-	v1.NewContactsRoutes(api, r.contactsUC, r.producer, r.worker)
+	v1.NewContactsRoutes(api, r.contactsUC, r.producer, &r.workers)
 }
 
 //integrationRoutes создает роуты для интеграций

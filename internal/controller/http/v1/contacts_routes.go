@@ -18,12 +18,12 @@ import (
 type contactsRoutes struct {
 	uc           contactsUC.UseCase
 	taskProducer producer.TaskProducer
-	worker       worker.TaskWorker
+	workers      *worker.TaskWorkers
 }
 
 //NewContactRoutes создает роуты для /contacts
-func NewContactsRoutes(handler *gin.RouterGroup, uc contactsUC.UseCase, taskProducer producer.TaskProducer, worker worker.TaskWorker) {
-	r := &contactsRoutes{uc: uc, taskProducer: taskProducer, worker: worker}
+func NewContactsRoutes(handler *gin.RouterGroup, uc contactsUC.UseCase, taskProducer producer.TaskProducer, workers *worker.TaskWorkers) {
+	r := &contactsRoutes{uc: uc, taskProducer: taskProducer, workers: workers}
 
 	h := handler.Group("/contacts")
 	{
@@ -56,7 +56,9 @@ func (r *contactsRoutes) updateContacts(c *gin.Context) {
 	contact := ConvertWebhookToGlobalContactsDTO(data)
 
 	r.taskProducer.EnqueueCreateContactTask(contact)
-	r.worker.ResolveCreateContactTask()
+
+	worker := r.workers.GetAvailableWorker(r.workers)
+	worker.ResolveCreateContactTask()
 
 	if err := r.uc.Create(contact); err != nil {
 		errorResponse(c, http.StatusInternalServerError, err.Error())

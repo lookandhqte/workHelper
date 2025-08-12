@@ -21,7 +21,7 @@ type dependencies struct {
 	ContactsUC    *contactsUC.UseCase
 	TasksProducer *producer.TaskProducer
 	Provider      *provider.Provider
-	Worker        *worker.TaskWorker
+	Workers       *worker.TaskWorkers
 }
 
 func composeDependencies() *dependencies {
@@ -41,14 +41,14 @@ func composeDependencies() *dependencies {
 		ContactsUC:    contactsUC.New(*storage),
 		Provider:      provider.New(),
 		TasksProducer: producer.NewTaskProducer(cfg.BeanstalkAddr),
-		Worker:        worker.NewTaskWorker(cfg.BeanstalkAddr),
+		Workers:       worker.NewTaskWorkers(cfg.BeanstalkAddr, 3), //добавить откуда-то amount
 	}
 }
 
 func setupRouter(deps *dependencies) *gin.Engine {
 	router := gin.Default()
 
-	controllerhttp.NewRouter(router, *deps.AccountUC, *deps.IntegrationUC, *deps.ContactsUC, *deps.TasksProducer, *deps.Provider, *deps.Worker)
+	controllerhttp.NewRouter(router, *deps.AccountUC, *deps.IntegrationUC, *deps.ContactsUC, *deps.TasksProducer, *deps.Provider, *deps.Workers)
 
 	return router
 }
