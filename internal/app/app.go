@@ -38,12 +38,6 @@ func (a *App) StartWorkers() {
 	}
 }
 
-// func (a *App) StopWorkers() {
-// 	for i:= 0; i< a.workers; i++ {
-// 		a.worker()
-// 	}
-// }
-
 func (a *App) worker() {
 	defer a.wg.Done()
 
