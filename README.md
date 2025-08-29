@@ -15,7 +15,7 @@ A service authomatizating default actions on hh.ru
 ## Install
 
 ```sh
-go get lookandhqte.com/Gelena/workhelper
+go get github.com/lookandhqte/workHelper
 ```
 
 ## Usage
