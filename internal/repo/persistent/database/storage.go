@@ -8,12 +8,12 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-//Storage структура
+// Storage структура
 type Storage struct {
 	DB *gorm.DB
 }
 
-//NewDatabaseStorage создает новое хранилище (база данных)
+// NewDatabaseStorage создает новое хранилище (база данных)
 func NewDatabaseStorage(cfg *config.Config) (*Storage, error) {
 	db, err := gorm.Open(mysql.Open(cfg.DSN), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
@@ -24,10 +24,7 @@ func NewDatabaseStorage(cfg *config.Config) (*Storage, error) {
 
 	err = db.AutoMigrate(
 		&entity.Account{},
-		&entity.Integration{},
 		&entity.Token{},
-		&entity.Contact{},
-		&entity.GlobalContact{},
 	)
 	if err != nil {
 		return nil, err

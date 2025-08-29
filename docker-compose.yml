@@ -15,7 +15,7 @@ services:
       - ".:/mnt/ddev_config"
   mysql:
     image: mysql:5.7
-    container_name: amocrm_mysql
+    container_name: mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD} 
       MYSQL_DATABASE: ${DB_NAME}
@@ -26,13 +26,13 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
-      - amocrm_network
+      - my_network
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: amocrm_golang
+    container_name: my_app
     environment:
       DB_HOST: mysql
       DB_PORT: 3306
@@ -44,12 +44,12 @@ services:
     volumes:
       - ./.env:/gelzhuravleva/.env 
     networks:
-      - amocrm_network
+      - my_network
     restart: unless-stopped
 
 volumes:
   mysql_data:
 
 networks:
-  amocrm_network:
+  my_network:
     driver: bridge

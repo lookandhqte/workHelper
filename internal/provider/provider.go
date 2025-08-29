@@ -1,19 +1,16 @@
 package provider
 
 import (
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/provider/amocrm"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/provider/unisender"
+	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/provider/hh"
 )
 
 type Provider struct {
-	Amo amocrm.Provider
-	Uni unisender.Provider
+	HH hh.Provider
 }
 
 // New создает нового провайдера
 func New() *Provider {
 	return &Provider{
-		Amo: *amocrm.New(),
-		Uni: *unisender.New(),
+		HH: *hh.New(),
 	}
 }

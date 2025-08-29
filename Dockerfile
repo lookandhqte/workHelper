@@ -1,7 +1,5 @@
 FROM golang:alpine as builder
 
-LABEL maintainer="amoCRM"
-
 RUN apk update && apk add --no-cache git
 
 WORKDIR /app
