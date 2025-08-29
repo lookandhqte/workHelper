@@ -1,8 +1,8 @@
 package database
 
 import (
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+	"github.com/lookandhqte/workHelper/config"
+	"github.com/lookandhqte/workHelper/internal/entity"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

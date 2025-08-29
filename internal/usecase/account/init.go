@@ -1,7 +1,7 @@
 package account
 
 import (
-	entity "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+	entity "github.com/lookandhqte/workHelper/internal/entity"
 )
 
 // UseCase структура

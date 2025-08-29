@@ -3,9 +3,9 @@ package storage
 import (
 	"log"
 
-	config "git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
-	database "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/repo/persistent/database"
-	inmemory "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/repo/persistent/inmemory"
+	config "github.com/lookandhqte/workHelper/config"
+	database "github.com/lookandhqte/workHelper/internal/repo/persistent/database"
+	inmemory "github.com/lookandhqte/workHelper/internal/repo/persistent/inmemory"
 )
 
 // NewStorage создает новое хранилище в зависимости от STORAGE_TYPE

@@ -1,6 +1,6 @@
 package storage
 
-import "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+import "github.com/lookandhqte/workHelper/internal/entity"
 
 // Storage определяет методы хранилища
 type Storage interface {

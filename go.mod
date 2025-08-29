@@ -1,9 +1,8 @@
-module git.amocrm.ru/gelzhuravleva/amocrm_golang
+module github.com/lookandhqte/workHelper
 
 go 1.18
 
 require (
-	github.com/beanstalkd/go-beanstalk v0.2.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/joho/godotenv v1.5.1
 	gorm.io/driver/mysql v1.6.0

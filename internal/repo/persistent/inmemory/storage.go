@@ -3,7 +3,7 @@ package inmemory
 import (
 	"sync"
 
-	entity "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+	entity "github.com/lookandhqte/workHelper/internal/entity"
 )
 
 // MemoryStorage структура определяющая in-memory хранилище

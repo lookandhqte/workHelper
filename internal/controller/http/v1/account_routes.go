@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	entity "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/provider"
-	accountUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
 	"github.com/gin-gonic/gin"
+	entity "github.com/lookandhqte/workHelper/internal/entity"
+	"github.com/lookandhqte/workHelper/internal/provider"
+	accountUC "github.com/lookandhqte/workHelper/internal/usecase/account"
 )
 
 // accountRoutes роутер для аккаунта

@@ -1,6 +1,6 @@
 package account
 
-import "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+import "github.com/lookandhqte/workHelper/internal/entity"
 
 // Create создает аккаунт
 func (uc *UseCase) Create(account *entity.Account) error {

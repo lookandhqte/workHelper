@@ -5,7 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/app"
+	"github.com/lookandhqte/workHelper/internal/app"
 )
 
 func main() {

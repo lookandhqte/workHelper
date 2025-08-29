@@ -1,10 +1,10 @@
 package http
 
 import (
-	v1 "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/controller/http/v1"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/provider"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
 	"github.com/gin-gonic/gin"
+	v1 "github.com/lookandhqte/workHelper/internal/controller/http/v1"
+	"github.com/lookandhqte/workHelper/internal/provider"
+	"github.com/lookandhqte/workHelper/internal/usecase/account"
 )
 
 // Router абстракция

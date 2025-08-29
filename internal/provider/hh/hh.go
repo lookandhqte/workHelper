@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+	"github.com/lookandhqte/workHelper/config"
+	"github.com/lookandhqte/workHelper/internal/entity"
 )
 
 type Provider struct {

@@ -3,7 +3,7 @@ package database
 import (
 	"errors"
 
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+	"github.com/lookandhqte/workHelper/internal/entity"
 	"gorm.io/gorm"
 )
 

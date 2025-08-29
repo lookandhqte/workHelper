@@ -1,12 +1,12 @@
 package app
 
 import (
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/config"
-	controllerhttp "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/controller/http"
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/provider"
-	accountUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/account"
-	storageUC "git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/usecase/storage"
 	"github.com/gin-gonic/gin"
+	"github.com/lookandhqte/workHelper/config"
+	controllerhttp "github.com/lookandhqte/workHelper/internal/controller/http"
+	"github.com/lookandhqte/workHelper/internal/provider"
+	accountUC "github.com/lookandhqte/workHelper/internal/usecase/account"
+	storageUC "github.com/lookandhqte/workHelper/internal/usecase/storage"
 )
 
 type dependencies struct {

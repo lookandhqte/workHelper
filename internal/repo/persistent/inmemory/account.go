@@ -1,7 +1,7 @@
 package inmemory
 
 import (
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/entity"
+	"github.com/lookandhqte/workHelper/internal/entity"
 )
 
 // AddAccount создает аккаунт в in-memory хранилище

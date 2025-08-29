@@ -1,7 +1,7 @@
 package provider
 
 import (
-	"git.amocrm.ru/gelzhuravleva/amocrm_golang/internal/provider/hh"
+	"github.com/lookandhqte/workHelper/internal/provider/hh"
 )
 
 type Provider struct {
