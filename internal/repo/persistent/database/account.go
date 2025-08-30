@@ -19,7 +19,7 @@ func (d *Storage) AddAccount(account *entity.Account) error {
 // GetAccount возвращает единственный аккаунт
 func (d *Storage) GetAccount() (*entity.Account, error) {
 	var account entity.Account
-	result := d.DB.First(&account)
+	result := d.DB.Preload("Token").First(&account)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, errors.New("account not found")
 	}

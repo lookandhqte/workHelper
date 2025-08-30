@@ -47,12 +47,14 @@ func (r *Provider) GetToken(code string) (*entity.Token, error) {
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Content-Length", strconv.Itoa(len(data.Encode())))
+
 	resp, err := r.client.Do(req)
 	if err != nil {
 		fmt.Printf("err while do req func get tokens hh.go: %v\n", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))

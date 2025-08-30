@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	entity "github.com/lookandhqte/workHelper/internal/entity"
+	"github.com/lookandhqte/workHelper/internal/producer"
 	"github.com/lookandhqte/workHelper/internal/provider"
 	accountUC "github.com/lookandhqte/workHelper/internal/usecase/account"
 )
@@ -15,12 +17,13 @@ import (
 // accountRoutes роутер для аккаунта
 type accountRoutes struct {
 	uc       accountUC.UseCase
+	producer producer.TaskProducer
 	provider provider.Provider
 }
 
 // NewAccountRoutes создает роуты для /account
-func NewAccountRoutes(handler *gin.RouterGroup, uc accountUC.UseCase, provider provider.Provider) {
-	r := &accountRoutes{uc: uc, provider: provider}
+func NewAccountRoutes(handler *gin.RouterGroup, producer producer.TaskProducer, provider provider.Provider, uc accountUC.UseCase) {
+	r := &accountRoutes{producer: producer, provider: provider, uc: uc}
 
 	h := handler.Group("/account")
 	{
@@ -40,8 +43,17 @@ func (r *accountRoutes) createAccount(c *gin.Context) {
 		return
 	}
 	account.CreatedAt = int(time.Now().Unix())
+	payload, err := json.Marshal(account)
+	if err != nil {
+		log.Printf("err while marshal: %v", err)
+	}
+	task := &entity.Task{
+		Payload: payload,
+		Type:    "account_creating",
+	}
 
-	if err := r.uc.Create(&account); err != nil {
+	if err := r.producer.CreateTask(task); err != nil {
+		log.Printf("create task failed: %v\n", err)
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -69,8 +81,19 @@ func (r *accountRoutes) updateAccount(c *gin.Context) {
 		errorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	payload, err := json.Marshal(account)
+	if err != nil {
+		log.Printf("create task failed: %v\n", err)
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	task := &entity.Task{
+		Payload: payload,
+		Type:    "account_updating",
+	}
 
-	if err := r.uc.Update(&account); err != nil {
+	if err := r.producer.CreateTask(task); err != nil {
+		log.Printf("create task failed: %v\n", err)
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -116,8 +139,20 @@ func (r *accountRoutes) handleRedirect(c *gin.Context) {
 
 	account.Token = *token
 
-	if err := r.uc.Update(account); err != nil {
-		c.JSON(http.StatusInternalServerError, err.Error())
+	payload, err := json.Marshal(account)
+	if err != nil {
+		log.Printf("create task failed: %v\n", err)
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	task := &entity.Task{
+		Payload: payload,
+		Type:    "account_updating",
+	}
+
+	if err := r.producer.CreateTask(task); err != nil {
+		log.Printf("create task failed: %v\n", err)
+		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 

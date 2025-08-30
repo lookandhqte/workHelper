@@ -3,19 +3,18 @@ package storage
 import (
 	"log"
 
-	config "github.com/lookandhqte/workHelper/config"
 	database "github.com/lookandhqte/workHelper/internal/repo/persistent/database"
 	inmemory "github.com/lookandhqte/workHelper/internal/repo/persistent/inmemory"
 )
 
 // NewStorage создает новое хранилище в зависимости от STORAGE_TYPE
-func NewStorage(cfg *config.Config) *Storage {
-	switch cfg.StorageType {
+func NewStorage(storageType string, DSN string) *Storage {
+	switch storageType {
 	case "in-memory":
 		DB = inmemory.NewMemoryStorage()
 		return &DB
 	case "database":
-		db, err := database.NewDatabaseStorage(cfg)
+		db, err := database.NewDatabaseStorage(DSN)
 		if err != nil {
 			log.Printf("error in new database storage func -> error in new storage func: %v", err)
 			DB = inmemory.NewMemoryStorage()

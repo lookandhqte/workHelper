@@ -10,13 +10,15 @@ import (
 
 // Config структура конфига
 type Config struct {
-	HTTPAddr     string
-	RedirectURI  string
-	ClientID     string
-	ClientSecret string
-	DSN          string
-	StorageType  string
-	WorkerAmount string
+	HTTPAddr      string
+	RedirectURI   string
+	ClientID      string
+	ClientSecret  string
+	DSN           string
+	StorageType   string
+	WorkerAmount  string
+	BeanstalkAddr string
+	WorkerDSN     string
 }
 
 // Load подгрузка .env и создание конфига
@@ -26,13 +28,15 @@ func Load() *Config {
 	}
 
 	return &Config{
-		HTTPAddr:     getEnv("PORT", ":2020"),
-		RedirectURI:  getEnv("REDIRECT_URI", ""),
-		DSN:          getEnv("DSN", ""),
-		StorageType:  getEnv("STORAGE_TYPE", "in-memory"),
-		ClientID:     getEnv("CLIENT_ID", ""),
-		ClientSecret: getEnv("CLIENT_SECRET", ""),
-		WorkerAmount: getEnv("WORKER_AMOUNT", "5"),
+		HTTPAddr:      getEnv("PORT", ":2020"),
+		RedirectURI:   getEnv("REDIRECT_URI", ""),
+		DSN:           getEnv("DSN", ""),
+		StorageType:   getEnv("STORAGE_TYPE", "in-memory"),
+		ClientID:      getEnv("CLIENT_ID", ""),
+		ClientSecret:  getEnv("CLIENT_SECRET", ""),
+		WorkerAmount:  getEnv("WORKER_AMOUNT", "5"),
+		BeanstalkAddr: getEnv("BEANSTALK_ADDR", ""),
+		WorkerDSN:     getEnv("WORKER_DSN", ""),
 	}
 }
 
