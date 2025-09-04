@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -19,6 +18,9 @@ type Config struct {
 	WorkerAmount  string
 	BeanstalkAddr string
 	WorkerDSN     string
+	Access        string
+	Refresh       string
+	ExpiresIn     string
 }
 
 // Load подгрузка .env и создание конфига
@@ -37,13 +39,15 @@ func Load() *Config {
 		WorkerAmount:  getEnv("WORKER_AMOUNT", "5"),
 		BeanstalkAddr: getEnv("BEANSTALK_ADDR", ""),
 		WorkerDSN:     getEnv("WORKER_DSN", ""),
+		Access:        getEnv("ACCESS_TOKEN", ""),
+		Refresh:       getEnv("REFRESH_TOKEN", ""),
+		ExpiresIn:     getEnv("EXPIRES_IN", ""),
 	}
 }
 
 // getEnv получение переменных окружения
 func getEnv(key, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists {
-		fmt.Println(value)
 		return value
 	}
 	return defaultValue

@@ -28,7 +28,7 @@ func (p *TaskProducer) CreateTask(task *entity.Task) error {
 	}
 	defer conn.Close()
 
-	payload, err := json.Marshal(task)
+	payload, err := json.Marshal(&task)
 	if err != nil {
 		return fmt.Errorf("json marshal failed: %w\n", err)
 	}

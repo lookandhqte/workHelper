@@ -2,6 +2,8 @@ package database
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/lookandhqte/workHelper/internal/entity"
 	"gorm.io/gorm"
@@ -9,10 +11,7 @@ import (
 
 // AddAccount создает или заменяет аккаунт (всегда только один)
 func (d *Storage) AddAccount(account *entity.Account) error {
-	if err := d.DB.Where("1 = 1").Delete(&entity.Account{}).Error; err != nil {
-		return err
-	}
-
+	d.DeleteAccount()
 	return d.DB.Create(account).Error
 }
 
@@ -32,6 +31,13 @@ func (d *Storage) UpdateAccount(account *entity.Account) error {
 	result := d.DB.First(&existingAccount)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return errors.New("account not found, cannot update")
+	}
+	if existingAccount.Token != account.Token {
+		account.Token.AccountID = account.ID
+		account.Token.ExpiresIn += int(time.Now().Unix())
+		if err := d.AddToken(&account.Token); err != nil {
+			return fmt.Errorf("failed to update token: %w", err)
+		}
 	}
 
 	return d.DB.Model(&existingAccount).Updates(account).Error

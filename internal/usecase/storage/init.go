@@ -8,6 +8,8 @@ type Storage interface {
 	GetAccount() (*entity.Account, error)
 	UpdateAccount(account *entity.Account) error
 	DeleteAccount() error
+	AddToken(token *entity.Token) error
+	GetTokenExpiry() (int, error)
 }
 
 // DB Глобальная переенная хранилища

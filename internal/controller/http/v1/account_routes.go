@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	entity "github.com/lookandhqte/workHelper/internal/entity"
@@ -42,11 +41,24 @@ func (r *accountRoutes) createAccount(c *gin.Context) {
 		errorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	account.CreatedAt = int(time.Now().Unix())
+	
+	// cfg := config.Load()
+	// account.Token.AccessToken = cfg.Access
+	// account.Token.AccountID = account.ID
+	// expires, err := strconv.Atoi(cfg.ExpiresIn)
+	// if err != nil {
+	// 	log.Printf("err while atoi: %v\n", err)
+	// }
+	// account.Token.ExpiresIn = expires + account.CreatedAt
+	// account.Token.TokenType = "Bearer"
+	// account.Token.RefreshToken = cfg.Refresh
+	// account.CreatedAt = int(time.Now().Unix())
+
 	payload, err := json.Marshal(account)
 	if err != nil {
 		log.Printf("err while marshal: %v", err)
 	}
+
 	task := &entity.Task{
 		Payload: payload,
 		Type:    "account_creating",

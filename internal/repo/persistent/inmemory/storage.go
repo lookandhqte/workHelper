@@ -10,6 +10,7 @@ import (
 type MemoryStorage struct {
 	mu            sync.RWMutex
 	account       *entity.Account
+	token         *entity.Token
 	lastAccountID int
 }
 
@@ -17,6 +18,7 @@ type MemoryStorage struct {
 func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
 		account:       &entity.Account{},
+		token:         &entity.Token{},
 		lastAccountID: 0,
 	}
 }

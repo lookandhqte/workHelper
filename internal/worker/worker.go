@@ -85,6 +85,7 @@ func (w *Worker) handleAccountCreation(body []byte) error {
 	}
 	return nil
 }
+
 func (w *Worker) handleAccountUpdating(body []byte) error {
 	var account entity.Account
 	if err := json.Unmarshal(body, &account); err != nil {
