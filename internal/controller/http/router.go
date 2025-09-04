@@ -6,6 +6,7 @@ import (
 	"github.com/lookandhqte/workHelper/internal/producer"
 	"github.com/lookandhqte/workHelper/internal/provider"
 	"github.com/lookandhqte/workHelper/internal/usecase/account"
+	"github.com/lookandhqte/workHelper/internal/usecase/token"
 )
 
 // Router абстракция
@@ -13,6 +14,7 @@ type Router struct {
 	provider  provider.Provider
 	producer  producer.TaskProducer
 	accountUC account.UseCase
+	tokenUC   token.UseCase
 }
 
 // NewRouter создает новый роутер
@@ -21,11 +23,13 @@ func NewRouter(
 	producer producer.TaskProducer,
 	provider provider.Provider,
 	accountUC account.UseCase,
+	tokenUC token.UseCase,
 ) {
 	router := &Router{
 		provider:  provider,
 		producer:  producer,
 		accountUC: accountUC,
+		tokenUC:   tokenUC,
 	}
 
 	api := r.Group("/v1")
@@ -36,5 +40,5 @@ func NewRouter(
 
 // accountRoutes создает роуты для аккаунта
 func (r *Router) accountRoutes(api *gin.RouterGroup) {
-	v1.NewAccountRoutes(api, r.producer, r.provider, r.accountUC)
+	v1.NewAccountRoutes(api, r.producer, r.provider, r.accountUC, r.tokenUC)
 }

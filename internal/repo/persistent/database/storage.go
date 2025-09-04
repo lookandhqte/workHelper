@@ -20,7 +20,7 @@ func NewDatabaseStorage(DSN string) (*Storage, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	
 	err = db.AutoMigrate(
 		&entity.Account{},
 		&entity.Token{},

@@ -6,11 +6,7 @@ import (
 
 // AddToken создает или заменяет токен (всегда только один)
 func (d *Storage) AddToken(token *entity.Token) error {
-	if err := d.DB.Where("1 = 1").Delete(&entity.Token{}).Error; err != nil {
-		return err
-	}
-
-	return d.DB.Create(token).Error
+	return d.DB.Where("1 = 1").Delete(&entity.Token{}).Create(token).Error
 }
 
 // GetTokenExpiry возвращает время в секундах, когда токен истечет

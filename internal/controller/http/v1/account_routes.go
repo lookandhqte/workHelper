@@ -5,24 +5,27 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	entity "github.com/lookandhqte/workHelper/internal/entity"
 	"github.com/lookandhqte/workHelper/internal/producer"
 	"github.com/lookandhqte/workHelper/internal/provider"
 	accountUC "github.com/lookandhqte/workHelper/internal/usecase/account"
+	tokenUC "github.com/lookandhqte/workHelper/internal/usecase/token"
 )
 
 // accountRoutes роутер для аккаунта
 type accountRoutes struct {
 	uc       accountUC.UseCase
+	tuc      tokenUC.UseCase
 	producer producer.TaskProducer
 	provider provider.Provider
 }
 
 // NewAccountRoutes создает роуты для /account
-func NewAccountRoutes(handler *gin.RouterGroup, producer producer.TaskProducer, provider provider.Provider, uc accountUC.UseCase) {
-	r := &accountRoutes{producer: producer, provider: provider, uc: uc}
+func NewAccountRoutes(handler *gin.RouterGroup, producer producer.TaskProducer, provider provider.Provider, uc accountUC.UseCase, tuc tokenUC.UseCase) {
+	r := &accountRoutes{producer: producer, provider: provider, uc: uc, tuc: tuc}
 
 	h := handler.Group("/account")
 	{
@@ -41,18 +44,8 @@ func (r *accountRoutes) createAccount(c *gin.Context) {
 		errorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	
-	// cfg := config.Load()
-	// account.Token.AccessToken = cfg.Access
-	// account.Token.AccountID = account.ID
-	// expires, err := strconv.Atoi(cfg.ExpiresIn)
-	// if err != nil {
-	// 	log.Printf("err while atoi: %v\n", err)
-	// }
-	// account.Token.ExpiresIn = expires + account.CreatedAt
-	// account.Token.TokenType = "Bearer"
-	// account.Token.RefreshToken = cfg.Refresh
-	// account.CreatedAt = int(time.Now().Unix())
+
+	account.CreatedAt = int(time.Now().Unix())
 
 	payload, err := json.Marshal(account)
 	if err != nil {
@@ -75,7 +68,6 @@ func (r *accountRoutes) createAccount(c *gin.Context) {
 
 // getAccount возвращает аккаунт
 func (r *accountRoutes) getAccount(c *gin.Context) {
-
 	account, err := r.uc.Return()
 	if err != nil {
 		errorResponse(c, http.StatusNotFound, "account not found")
@@ -140,6 +132,8 @@ func (r *accountRoutes) handleRedirect(c *gin.Context) {
 	token, err := r.provider.HH.GetToken(code)
 	if err != nil {
 		log.Printf("err while get token func handle redirect:  %v\n", err)
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	account, err := r.uc.Return()
@@ -147,6 +141,11 @@ func (r *accountRoutes) handleRedirect(c *gin.Context) {
 		log.Printf("error while getting account: %v", err)
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	token.AccountID = account.ID
+	if err := r.tuc.Create(token); err != nil {
+		log.Printf("create token failed func handle redirect :%v\n", err)
 	}
 
 	account.Token = *token

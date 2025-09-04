@@ -63,7 +63,7 @@ func (w *Worker) processTask(body []byte) error {
 	}
 
 	switch task.Type {
-	case "account_creation":
+	case "account_creating":
 		return w.handleAccountCreation(task.Payload)
 	case "account_updating":
 		return w.handleAccountUpdating(task.Payload)

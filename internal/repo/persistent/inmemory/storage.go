@@ -8,17 +8,15 @@ import (
 
 // MemoryStorage структура определяющая in-memory хранилище
 type MemoryStorage struct {
-	mu            sync.RWMutex
-	account       *entity.Account
-	token         *entity.Token
-	lastAccountID int
+	mu      *sync.RWMutex
+	account *entity.Account
+	token   *entity.Token
 }
 
 // NewMemoryStorage создает новое хранилище in-memory
 func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
-		account:       &entity.Account{},
-		token:         &entity.Token{},
-		lastAccountID: 0,
+		account: &entity.Account{},
+		token:   &entity.Token{},
 	}
 }

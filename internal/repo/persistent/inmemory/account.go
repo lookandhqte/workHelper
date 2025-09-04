@@ -35,6 +35,5 @@ func (m *MemoryStorage) DeleteAccount() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.account = &entity.Account{}
-	m.lastAccountID--
 	return nil
 }
