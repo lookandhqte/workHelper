@@ -34,6 +34,7 @@ func NewAccountRoutes(handler *gin.RouterGroup, producer producer.TaskProducer, 
 		h.PUT("/", r.updateAccount)
 		h.DELETE("/", r.deleteAccount)
 		h.GET("/redirect", r.handleRedirect)
+		h.GET("/hh_ids", r.getSimilarVacancies)
 	}
 }
 
@@ -142,7 +143,7 @@ func (r *accountRoutes) handleRedirect(c *gin.Context) {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-
+	token.CreatedAt = int(time.Now().Unix())
 	token.AccountID = account.ID
 	if err := r.tuc.Create(token); err != nil {
 		log.Printf("create token failed func handle redirect :%v\n", err)
@@ -170,5 +171,24 @@ func (r *accountRoutes) handleRedirect(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
 		"account": account,
+	})
+}
+
+func (r *accountRoutes) getSimilarVacancies(c *gin.Context) {
+	account, err := r.uc.Return()
+	if err != nil {
+		log.Printf("error while getting account: %v", err)
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	ids, err := r.provider.HH.GetUserSimilarVacanciesIDs(account.Token.AccessToken)
+	if err != nil {
+		log.Printf("error while getting similar ids: %v", err)
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"ids":    ids,
 	})
 }
