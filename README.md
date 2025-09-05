@@ -21,7 +21,9 @@ go get github.com/lookandhqte/workHelper
 ## Usage
 
 ```sh
-go run /cmd/app/main.go
+beanstalkd -l 127.0.0.1 -p 11300
+go run cmd/app/main.go
+go run cmd/worker/main.go
 ```
 
 ## Maintainers
