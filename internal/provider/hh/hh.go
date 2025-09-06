@@ -155,8 +155,8 @@ func (r *Provider) GetUserInfo(token string) (string, error) {
 		fmt.Printf("err while unmarshal body: %v\n", err)
 		return "", err
 	}
-	fmt.Println("found user email:")
-	fmt.Println(responseData.Email)
+	fmt.Printf("response after unmarshal %v\n", responseData)
+	//fmt.Println(responseData.Email)
 
 	return responseData.ResumesURL, nil
 }
@@ -238,7 +238,7 @@ func (r *Provider) GetUserSimilarVacanciesIDs(token string) (*[]string, error) {
 			fmt.Printf("err while readall auth get user info func %v\n", err)
 			return nil, err
 		}
-		responseData := &vacancyDTO{}
+		responseData := &userSimilarVacancyDTO{}
 		if err := json.Unmarshal(body, responseData); err != nil {
 			fmt.Printf("err while unmarshal body: %v\n", err)
 			return nil, err
@@ -253,7 +253,7 @@ func (r *Provider) GetUserSimilarVacanciesIDs(token string) (*[]string, error) {
 	return &foundIDs, nil
 }
 
-// GetVacancyDescription получает информацию о пользователе
+// GetVacancyDescription возвращает описание вакансии по ID
 func (r *Provider) GetVacancyDescription(token string) (*[]string, error) {
 	baseURL, err := r.GetUserResumes(token)
 	foundIDs := make([]string, 0, len(*baseURL))
@@ -285,7 +285,7 @@ func (r *Provider) GetVacancyDescription(token string) (*[]string, error) {
 			fmt.Printf("err while readall auth get user info func %v\n", err)
 			return nil, err
 		}
-		responseData := &vacancyDTO{}
+		responseData := &userSimilarVacancyDTO{}
 		if err := json.Unmarshal(body, responseData); err != nil {
 			fmt.Printf("err while unmarshal body: %v\n", err)
 			return nil, err
@@ -299,4 +299,3 @@ func (r *Provider) GetVacancyDescription(token string) (*[]string, error) {
 
 	return &foundIDs, nil
 }
-
