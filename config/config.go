@@ -18,9 +18,6 @@ type Config struct {
 	WorkerAmount  string
 	BeanstalkAddr string
 	WorkerDSN     string
-	Access        string
-	Refresh       string
-	ExpiresIn     string
 }
 
 // Load подгрузка .env и создание конфига
@@ -36,12 +33,9 @@ func Load() *Config {
 		StorageType:   getEnv("STORAGE_TYPE", "in-memory"),
 		ClientID:      getEnv("CLIENT_ID", ""),
 		ClientSecret:  getEnv("CLIENT_SECRET", ""),
-		WorkerAmount:  getEnv("WORKER_AMOUNT", "5"),
+		WorkerAmount:  getEnv("WORKER_AMOUNT", ""),
 		BeanstalkAddr: getEnv("BEANSTALK_ADDR", ""),
 		WorkerDSN:     getEnv("WORKER_DSN", ""),
-		Access:        getEnv("ACCESS_TOKEN", ""),
-		Refresh:       getEnv("REFRESH_TOKEN", ""),
-		ExpiresIn:     getEnv("EXPIRES_IN", ""),
 	}
 }
 

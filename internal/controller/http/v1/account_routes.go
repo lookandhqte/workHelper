@@ -12,20 +12,18 @@ import (
 	"github.com/lookandhqte/workHelper/internal/producer"
 	"github.com/lookandhqte/workHelper/internal/provider"
 	accountUC "github.com/lookandhqte/workHelper/internal/usecase/account"
-	tokenUC "github.com/lookandhqte/workHelper/internal/usecase/token"
 )
 
 // accountRoutes роутер для аккаунта
 type accountRoutes struct {
 	uc       accountUC.UseCase
-	tuc      tokenUC.UseCase
 	producer producer.TaskProducer
 	provider provider.Provider
 }
 
 // NewAccountRoutes создает роуты для /account
-func NewAccountRoutes(handler *gin.RouterGroup, producer producer.TaskProducer, provider provider.Provider, uc accountUC.UseCase, tuc tokenUC.UseCase) {
-	r := &accountRoutes{producer: producer, provider: provider, uc: uc, tuc: tuc}
+func NewAccountRoutes(handler *gin.RouterGroup, producer producer.TaskProducer, provider provider.Provider, uc accountUC.UseCase) {
+	r := &accountRoutes{producer: producer, provider: provider, uc: uc}
 
 	h := handler.Group("/account")
 	{
@@ -145,10 +143,6 @@ func (r *accountRoutes) handleRedirect(c *gin.Context) {
 	}
 	token.CreatedAt = int(time.Now().Unix())
 	token.AccountID = account.ID
-	if err := r.tuc.Create(token); err != nil {
-		log.Printf("create token failed func handle redirect :%v\n", err)
-	}
-
 	account.Token = *token
 
 	payload, err := json.Marshal(account)

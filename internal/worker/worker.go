@@ -11,12 +11,10 @@ import (
 	"github.com/lookandhqte/workHelper/internal/entity"
 	"github.com/lookandhqte/workHelper/internal/provider"
 	accountUC "github.com/lookandhqte/workHelper/internal/usecase/account"
-	tokenUC "github.com/lookandhqte/workHelper/internal/usecase/token"
 )
 
 type UseCases struct {
 	accoutUC accountUC.UseCase
-	tokenUC  tokenUC.UseCase
 }
 
 type Worker struct {
@@ -26,7 +24,7 @@ type Worker struct {
 	provider provider.Provider
 }
 
-func NewWorker(addr string, uc accountUC.UseCase, tuc tokenUC.UseCase, provider provider.Provider) *Worker {
+func NewWorker(addr string, uc accountUC.UseCase, provider provider.Provider) *Worker {
 	conn, err := beanstalk.Dial("tcp", addr)
 	if err != nil {
 		log.Fatal("Failed to connect to Beanstalkd:", err)
@@ -35,7 +33,7 @@ func NewWorker(addr string, uc accountUC.UseCase, tuc tokenUC.UseCase, provider 
 	return &Worker{
 		conn:     conn,
 		stop:     make(chan struct{}),
-		usecases: UseCases{accoutUC: uc, tokenUC: tuc},
+		usecases: UseCases{accoutUC: uc},
 		provider: provider,
 	}
 }
@@ -140,7 +138,6 @@ func (w *Worker) refreshToken() error {
 	}
 	newTokens.CreatedAt = int(time.Now().Unix())
 	newTokens.AccountID = account.ID
-	w.usecases.tokenUC.Create(newTokens)
 	account.Token = *newTokens
 	return w.usecases.accoutUC.Update(account)
 }

@@ -8,13 +8,11 @@ import (
 	"github.com/lookandhqte/workHelper/internal/provider"
 	accountUC "github.com/lookandhqte/workHelper/internal/usecase/account"
 	storageUC "github.com/lookandhqte/workHelper/internal/usecase/storage"
-	tokenUC "github.com/lookandhqte/workHelper/internal/usecase/token"
 )
 
 type dependencies struct {
 	cfg           *config.Config
 	AccountUC     *accountUC.UseCase
-	TokenUC       *tokenUC.UseCase
 	TasksProducer *producer.TaskProducer
 	Provider      *provider.Provider
 }
@@ -26,7 +24,6 @@ func composeDependencies() *dependencies {
 	return &dependencies{
 		cfg:           cfg,
 		AccountUC:     accountUC.New(*storage),
-		TokenUC:       tokenUC.New(*storage),
 		Provider:      provider.New(),
 		TasksProducer: producer.NewTaskProducer(cfg.BeanstalkAddr),
 	}
@@ -35,7 +32,7 @@ func composeDependencies() *dependencies {
 func setupRouter(deps *dependencies) *gin.Engine {
 	router := gin.Default()
 
-	controllerhttp.NewRouter(router, *deps.TasksProducer, *deps.Provider, *deps.AccountUC, *deps.TokenUC)
+	controllerhttp.NewRouter(router, *deps.TasksProducer, *deps.Provider, *deps.AccountUC)
 
 	return router
 }
