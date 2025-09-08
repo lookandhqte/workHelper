@@ -175,7 +175,7 @@ func (r *accountRoutes) getSimilarVacancies(c *gin.Context) {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	ids, err := r.provider.HH.GetUserSimilarVacanciesIDs(account.Token.AccessToken)
+	ids, err := r.provider.HH.GetVacancyData(account.Token.AccessToken)
 	if err != nil {
 		log.Printf("error while getting similar ids: %v", err)
 		errorResponse(c, http.StatusInternalServerError, err.Error())

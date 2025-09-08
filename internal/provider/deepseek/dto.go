@@ -1,25 +1,4 @@
-package hh
-
-//DTO структуры
-
-// userInfoDTO структура информации о пользователе, возвращаемая запросом GET /me
-type userInfoDTO struct {
-	Email           string `json:"email"`
-	ResumesURL      string `json:"resumes_url"`
-	NegotiationsURL string `json:"negotiations_url"` //посмотреть GET количество откликов и приглашений
-}
-
-// userResumesDTO структура резюме пользователя, возвращаемая запросом GET ${ResumesURL}
-type userResumesDTO struct {
-	Items []resumeItem `json:"items"`
-	Found int64        `json:"found"`
-}
-
-// userSimilarVacancyDTO структура вакансий для пользователя, возвращаемая запросом GET ${Item.SimilarVacancies.URL}
-type userSimilarVacancyDTO struct {
-	Items []similarVacancyItem `json:"items"`
-	Found int64                `json:"found"`
-}
+package deepseek
 
 // vacancyDataDTO структура необходимой информации для составления сопровода и отклика на вакансию
 type vacancyDataDTO struct {
@@ -46,65 +25,10 @@ type vacancyDataDTO struct {
 	WorkingHours       []dictionary      `json:"working_hours"`         // 6 7 8 в день
 }
 
-//Item структуры
-
-// resumeItem структура описывающая экземпляр резюме
-type resumeItem struct {
-	URL              string           `json:"url"`               //URL самого резюме в hh
-	ID               string           `json:"id"`                //id для отклика
-	EmploymentForm   []dictionary     `json:"employment_form"`   // для иихи
-	WorkFormat       []dictionary     `json:"work_format"`       //для иихи
-	Education        userEducation    `json:"education"`         // для иихи
-	Experience       []userExperience `json:"experience"`        // для иихи
-	SimilarVacancies similarVacancies `json:"similar_vacancies"` // для поиска похожих вакансий
-}
-
-// similarVacancyItem структура описывающая экземпляр вакансии, получаемая запросом GET {$SimilarVacancies.URL}
-type similarVacancyItem struct {
-	HasTest  bool   `json:"has_test"`
-	Archived bool   `json:"archived"`
-	URL      string `json:"url"`
-}
-
 // dictionary структура справочника
 type dictionary struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
-}
-
-// userEducation структура описывающая образование соискателя
-type userEducation struct {
-	Level   dictionary    `json:"level"`
-	Primary []userPrimary `json:"primary"`
-}
-
-// userPrimary структура описывающая единичное образование в определенной организации
-type userPrimary struct {
-	ID                string      `json:"id"`
-	Name              string      `json:"name"`
-	Organization      string      `json:"organization"`
-	Result            string      `json:"result"`
-	Year              int64       `json:"year"`
-	UniversityAcronym string      `json:"university_acronym"`
-	NameID            string      `json:"name_id"`
-	OrganizationID    interface{} `json:"organization_id"`
-	ResultID          interface{} `json:"result_id"`
-	EducationLevel    dictionary  `json:"education_level"`
-}
-
-// userExperience структура описывающая опыт соискателя
-type userExperience struct {
-	Start     string           `json:"start"`
-	End       string           `json:"end"`
-	Company   string           `json:"company"`
-	CompanyID *string          `json:"company_id"`
-	Employer  *vacancyEmployer `json:"employer"`
-	Position  string           `json:"position"`
-}
-
-// similarVacancies вакансии, подходящие по резюме
-type similarVacancies struct {
-	URL string `json:"url"`
 }
 
 // vacancyAddress фактический адрес вакансии
@@ -127,4 +51,12 @@ type vacancyEmployer struct {
 // vacancyKeySkill структура ключевых скиллов вакансии
 type vacancyKeySkill struct {
 	Name string `json:"name"`
+}
+
+type responseDTO struct {
+	Choices []struct {
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
+	} `json:"choices"`
 }

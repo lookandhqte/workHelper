@@ -124,8 +124,8 @@ func (r *Provider) RefreshToken(refreshToken string) (*entity.Token, error) {
 	return responseData, nil
 }
 
-// GetUserInfo получает информацию о пользователе
-func (r *Provider) GetUserInfo(token string) (string, error) {
+// getUserInfo получает информацию о пользователе
+func (r *Provider) getUserInfo(token string) (string, error) {
 	req, err := http.NewRequest(http.MethodGet, "https://api.hh.ru/me", nil)
 	if err != nil {
 		fmt.Printf("err while rnew request func refresh token hh.go: %v\n", err)
@@ -157,13 +157,12 @@ func (r *Provider) GetUserInfo(token string) (string, error) {
 	}
 	fmt.Printf("response after unmarshal %v\n", responseData)
 	//fmt.Println(responseData.Email)
-
 	return responseData.ResumesURL, nil
 }
 
 // GetUserResumes получает информацию о пользователе
-func (r *Provider) GetUserResumes(token string) (*[]string, error) {
-	baseURL, err := r.GetUserInfo(token)
+func (r *Provider) getUserResumes(token string) (*[]string, error) {
+	baseURL, err := r.getUserInfo(token)
 	if err != nil {
 		fmt.Printf("err while get user info: %v\n", err)
 		return nil, err
@@ -206,10 +205,10 @@ func (r *Provider) GetUserResumes(token string) (*[]string, error) {
 	return &similarVacanciesURLs, nil
 }
 
-// GetUserSimilarVacanciesIDs получает информацию о пользователе
-func (r *Provider) GetUserSimilarVacanciesIDs(token string) (*[]string, error) {
-	baseURL, err := r.GetUserResumes(token)
-	foundIDs := make([]string, 0, len(*baseURL))
+// getUserSimilarVacanciesIDs получает информацию о пользователе
+func (r *Provider) getUserSimilarVacanciesURLs(token string) (*[]string, error) {
+	baseURL, err := r.getUserResumes(token)
+	foundURLs := make([]string, 0, len(*baseURL))
 	if err != nil {
 		fmt.Printf("err while get user resumes: %v\n", err)
 		return nil, err
@@ -246,22 +245,66 @@ func (r *Provider) GetUserSimilarVacanciesIDs(token string) (*[]string, error) {
 		fmt.Println("found vacancies:")
 		fmt.Println(responseData.Found)
 		for _, item := range responseData.Items {
-			foundIDs = append(foundIDs, item.ID)
+			if !item.Archived && !item.HasTest {
+				foundURLs = append(foundURLs, item.URL)
+			}
 		}
 	}
 
-	return &foundIDs, nil
+	return &foundURLs, nil
 }
 
-// GetVacancyDescription возвращает описание вакансии по ID
-func (r *Provider) GetVacancyDescription(token string) (*[]string, error) {
-	baseURL, err := r.GetUserResumes(token)
-	foundIDs := make([]string, 0, len(*baseURL))
+// // getUserVacanciesIDs возвращает вакансии отобранные по своим алгоритмам
+// func (r *Provider) getUserVacanciesURLs(token string) (*[]string, error) {
+
+// 	data := &url.Values{}
+// 	data.Set("professional_roles", "96")
+
+// 		req, err := http.NewRequest(http.MethodGet, "https://api.hh.ru/vacancies", strings.NewReader(data.Encode()))
+// 		if err != nil {
+// 			fmt.Printf("err while rnew request func refresh token hh.go: %v\n", err)
+// 			return nil, err
+// 		}
+// 		req.Header.Add("User-Agent", "workHelper/1.0(roselifemeow@gmail.com)")
+// 		req.Header.Add("Authorization", "Bearer "+token)
+// 		resp, err := r.client.Do(req)
+// 		if err != nil {
+// 			fmt.Printf("err while get user info dto: %v\n", err)
+// 			return nil, err
+// 		}
+// 		defer resp.Body.Close()
+
+// 		if resp.StatusCode != http.StatusOK {
+// 			body, _ := io.ReadAll(resp.Body)
+// 			return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
+// 		}
+// 		body, err := io.ReadAll(resp.Body)
+// 		if err != nil {
+// 			fmt.Printf("err while readall auth get user info func %v\n", err)
+// 			return nil, err
+// 		}
+// 		responseData := &userSimilarVacancyDTO{}
+// 		if err := json.Unmarshal(body, responseData); err != nil {
+// 			fmt.Printf("err while unmarshal body: %v\n", err)
+// 			return nil, err
+// 		}
+// 		fmt.Println("found vacancies:")
+// 		fmt.Println(responseData.Found)
+
+// 	return nil, nil
+// }
+
+// getVacancyData возвращает описание вакансии по ID
+func (r *Provider) GetVacancyData(token string) (*[]vacancyDataDTO, error) {
+	vacancyURLs, err := r.getUserSimilarVacanciesURLs(token)
 	if err != nil {
-		fmt.Printf("err while get user resumes: %v\n", err)
+		fmt.Printf("err while get user similar vacancies urls: %v\n", err)
 		return nil, err
 	}
-	for _, url := range *baseURL {
+
+	vacanciesData := make([]vacancyDataDTO, 0, len(*vacancyURLs))
+
+	for _, url := range *vacancyURLs {
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
 			fmt.Printf("err while rnew request func refresh token hh.go: %v\n", err)
@@ -285,17 +328,13 @@ func (r *Provider) GetVacancyDescription(token string) (*[]string, error) {
 			fmt.Printf("err while readall auth get user info func %v\n", err)
 			return nil, err
 		}
-		responseData := &userSimilarVacancyDTO{}
+		responseData := &vacancyDataDTO{}
 		if err := json.Unmarshal(body, responseData); err != nil {
 			fmt.Printf("err while unmarshal body: %v\n", err)
 			return nil, err
 		}
-		fmt.Println("found vacancies:")
-		fmt.Println(responseData.Found)
-		for _, item := range responseData.Items {
-			foundIDs = append(foundIDs, item.ID)
-		}
-	}
 
-	return &foundIDs, nil
+		vacanciesData = append(vacanciesData, *responseData)
+	}
+	return &vacanciesData, nil
 }

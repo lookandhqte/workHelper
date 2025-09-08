@@ -18,6 +18,7 @@ type Config struct {
 	WorkerAmount  string
 	BeanstalkAddr string
 	WorkerDSN     string
+	DeepseekAPI   string
 }
 
 // Load подгрузка .env и создание конфига
@@ -36,6 +37,7 @@ func Load() *Config {
 		WorkerAmount:  getEnv("WORKER_AMOUNT", ""),
 		BeanstalkAddr: getEnv("BEANSTALK_ADDR", ""),
 		WorkerDSN:     getEnv("WORKER_DSN", ""),
+		DeepseekAPI:   getEnv("DEEPSEEK_API", ""),
 	}
 }
 
