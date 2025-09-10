@@ -1,5 +1,10 @@
 package hh
 
+import (
+	"fmt"
+	"regexp"
+)
+
 //DTO структуры
 
 // userInfoDTO структура информации о пользователе, возвращаемая запросом GET /me
@@ -36,7 +41,6 @@ type vacancyDataDTO struct {
 	Employment         dictionary        `json:"employment"`            //исходя из этого будет считаться вилка
 	Description        string            `json:"description"`           //для дипсика
 	KeySkills          []vacancyKeySkill `json:"key_skills"`            //для дипсика
-	ProfessionalRoles  []dictionary      `json:"professional_roles"`    //нужно 96 - можно все вакансии получать и отбирать по этому критерию
 	Hidden             bool              `json:"hidden"`                //скрыта ли вакансия: должно быть false
 	Employer           vacancyEmployer   `json:"employer"`              //инфа о работодателе (компании)
 	Test               interface{}       `json:"test"`                  //тест
@@ -147,4 +151,67 @@ type ResumeDTO struct {
 type SimilarVacanciesDTO struct {
 	ID  string `json:"id"`
 	URL string `json:"url"`
+}
+
+type PromptData struct {
+	ID          string   `json:"id"`
+	Position    string   `json:"position"`
+	Company     string   `json:"company"`
+	Description string   `json:"description"`
+	KeySkills   []string `json:"key_skills"`
+	Experience  string   `json:"experience"`
+	Schedule    string   `json:"schedule"`
+	Employment  string   `json:"employment"`
+	WorkFormat  string   `json:"work_format"`
+	Address     string   `json:"address"`
+}
+
+func preparePromptData(vacancy *vacancyDataDTO) *PromptData {
+	skills := make([]string, len(vacancy.KeySkills))
+	for i, skill := range vacancy.KeySkills {
+		skills[i] = skill.Name
+	}
+
+	workFormat := ""
+	if len(vacancy.WorkFormat) > 0 {
+		workFormat = vacancy.WorkFormat[0].Name
+	}
+
+	return &PromptData{
+		ID:          vacancy.ID,
+		Position:    vacancy.Name,
+		Company:     vacancy.Employer.Name,
+		Description: cleanHTML(vacancy.Description),
+		KeySkills:   skills,
+		Experience:  vacancy.Experience.Name,
+		Schedule:    vacancy.Schedule.Name,
+		Employment:  vacancy.Employment.Name,
+		WorkFormat:  workFormat,
+	}
+}
+
+func cleanHTML(html string) string {
+	re := regexp.MustCompile(`<[^>]*>`)
+	return re.ReplaceAllString(html, "")
+}
+
+// Response структура отклика
+type Response struct {
+	VacancyURL string `json:"url"`
+	ResumeID   string `json:"resume_id"`
+	VacancyID  string `json:"vacancy_id"`
+	Message    string `json:"message"` //максимум 10.000 символов
+}
+
+func resumesToResponses(resumes *[]ResumeDTO) (*[]Response, error) {
+	responses := make([]Response, 0)
+	for _, resume := range *resumes {
+		for _, similarvac := range *resume.SimilarVacancies {
+			responses = append(responses, Response{ResumeID: resume.ID, VacancyID: similarvac.ID, VacancyURL: similarvac.URL})
+		}
+	}
+	if len(responses) == 0 {
+		return nil, fmt.Errorf("no responses no resumes\n")
+	}
+	return &responses, nil
 }

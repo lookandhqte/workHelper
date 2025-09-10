@@ -176,23 +176,44 @@ func (r *accountRoutes) getVacanciesDescriptions(c *gin.Context) {
 		return
 	}
 
-	resumes, err := r.provider.HH.ReturnResumes(account.Token.AccessToken)
-
+	responses, err := r.provider.HH.ReturnResponses(account.Token.AccessToken)
 	if err != nil {
-		log.Printf("error while return resumes: %v", err)
+		log.Printf("error while getting responses: %v", err)
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	responses, err := resumesToResponses(resumes)
+	resps := (*responses)[:1]
+
+	prompts, err := r.provider.HH.ReturnPromptData(account.Token.AccessToken, &resps)
 	if err != nil {
-		log.Printf("error while resumes to responses: %v", err)
+		log.Printf("error while getting prompt data: %v", err)
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
+	}
+	for _, prompt := range *prompts {
+		message, err := r.provider.DeepSeek.GetVacancySoprovod(prompt)
+
+		if err != nil {
+			log.Printf("error while getting soprovod: %v", err)
+			errorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		for i := range resps {
+			if prompt.ID == resps[i].VacancyID {
+				resps[i].Message = message
+				err := r.provider.HH.DoResponse(account.Token.AccessToken, &resps[i])
+				if err != nil {
+					fmt.Printf("err while do response: %v\n", err)
+				}
+				break
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status": "success",
-		"ids":    responses,
+		"status":    "success",
+		"responses": resps,
 	})
 }

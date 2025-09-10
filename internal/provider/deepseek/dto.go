@@ -9,9 +9,4 @@ type responseDTO struct {
 	} `json:"choices"`
 }
 
-// Response структура отклика
-type ResponseToVacDTO struct {
-	ResumeID  string `json:"resume_id"`
-	VacancyID string `json:"vacancy_id"`
-	Message   string `json:"message"` //максимум 10.000 символов
-}
+

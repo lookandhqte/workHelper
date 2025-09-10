@@ -1,9 +1,11 @@
 package hh
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -80,7 +82,7 @@ func (r *Provider) RefreshToken(refreshToken string) (*entity.Token, error) {
 	return responseData, nil
 }
 
-func (r *Provider) ReturnResumes(token string) (*[]ResumeDTO, error) {
+func (r *Provider) ReturnResponses(token string) (*[]Response, error) {
 
 	userInfo, err := r.getUserInfo(token)
 	if err != nil {
@@ -97,19 +99,38 @@ func (r *Provider) ReturnResumes(token string) (*[]ResumeDTO, error) {
 	}
 
 	resumes := make([]ResumeDTO, 0, userResumes.Found)
-
 	for _, resume := range userResumes.Items {
-		found, err := r.getResumeSimilarVacancies(token, resume.SimilarVacancies.URL, resume.SimilarVacancies.Counters.Total)
-		fmt.Printf("total: %v\n", resume.SimilarVacancies.Counters.Total)
-		fmt.Printf("found: %v\n", len(*found))
-		if err != nil {
-			fmt.Printf("err while get list similar func fill account: %v\n", err)
-			return nil, err
+		if resume.ID == "ac4ac1e5ff0eefecc80039ed1f4f5555586a71" {
+			found, err := r.getResumeSimilarVacancies(token, resume.SimilarVacancies.URL, resume.SimilarVacancies.Counters.Total)
+			if err != nil {
+				fmt.Printf("err while get list similar func fill account: %v\n", err)
+				return nil, err
+			}
+			resumes = append(resumes, ResumeDTO{ID: resume.ID, SimilarVacancies: found})
 		}
-		resumes = append(resumes, ResumeDTO{ID: resume.ID, SimilarVacancies: found})
 	}
 
-	return &resumes, nil
+	result, err := resumesToResponses(&resumes)
+	if err != nil {
+		fmt.Printf("err while get list similar func fill account: %v\n", err)
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (r *Provider) ReturnPromptData(token string, responses *[]Response) (*[]PromptData, error) {
+	result := make([]PromptData, 0, len(*responses))
+	for _, response := range *responses {
+		vacancy, err := r.getVacancy(token, response.VacancyURL)
+		if err != nil {
+			fmt.Printf("error while get vacancy return prompt data func: %v\n", err)
+			return nil, err
+		}
+		prompt := preparePromptData(vacancy)
+		result = append(result, *prompt)
+	}
+	return &result, nil
 }
 
 func (r *Provider) getRequest(token string, url string) (*[]byte, error) {
@@ -236,15 +257,14 @@ func (r *Provider) getResumeSimilarVacancies(token string, url string, amountOfV
 	return &similarVacancies, nil
 }
 
-// GetVacancyDescription возвращает описание вакансии
-func (r *Provider) GetVacancyDescription(token string, url string) (*userResumesDTO, error) {
+func (r *Provider) getVacancy(token string, url string) (*vacancyDataDTO, error) {
 	body, err := r.getRequest(token, url)
 	if err != nil {
 		fmt.Printf("err while readall auth get user info func %v\n", err)
 		return nil, err
 	}
 
-	responseData := &userResumesDTO{}
+	responseData := &vacancyDataDTO{}
 	if err := json.Unmarshal(*body, responseData); err != nil {
 		fmt.Printf("err while unmarshal body: %v\n", err)
 		return nil, err
@@ -253,10 +273,49 @@ func (r *Provider) GetVacancyDescription(token string, url string) (*userResumes
 	return responseData, nil
 }
 
-// GetVacancyDescription получает резюме пользователя
-func (r *Provider) GetVacancyKeySkills(token string, id string) (*userResumesDTO, error) {
-	return nil, nil
-}
+func (r *Provider) DoResponse(token string, responseData *Response) error {
 
-// GetVacancyDescription получает резюме пользователя
-func (r *Provider) GetVacancyByID(token string, id string) (*userResumesDTO, error) { return nil, nil }
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+
+	if err := writer.WriteField("message", responseData.Message); err != nil {
+		return err
+	}
+	if err := writer.WriteField("resume_id", responseData.ResumeID); err != nil {
+		return err
+	}
+	if err := writer.WriteField("vacancy_id", responseData.VacancyID); err != nil {
+		return err
+	}
+
+	if err := writer.Close(); err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", "https://api.hh.ru/negotiations", &body)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("User-Agent", "workHelper/1.0 (roselifemeow@gmail.com)")
+
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(respBody))
+	}
+
+	fmt.Printf("Success response: %s\n", string(respBody))
+	return nil
+}
