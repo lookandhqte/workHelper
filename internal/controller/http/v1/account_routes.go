@@ -32,7 +32,7 @@ func NewAccountRoutes(handler *gin.RouterGroup, producer producer.TaskProducer, 
 		h.PUT("/", r.updateAccount)
 		h.DELETE("/", r.deleteAccount)
 		h.GET("/redirect", r.handleRedirect)
-		h.GET("/hh_ids", r.getSimilarVacancies)
+		h.GET("/hh_ids", r.getVacanciesDescriptions)
 	}
 }
 
@@ -168,21 +168,31 @@ func (r *accountRoutes) handleRedirect(c *gin.Context) {
 	})
 }
 
-func (r *accountRoutes) getSimilarVacancies(c *gin.Context) {
+func (r *accountRoutes) getVacanciesDescriptions(c *gin.Context) {
 	account, err := r.uc.Return()
 	if err != nil {
 		log.Printf("error while getting account: %v", err)
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	ids, err := r.provider.HH.GetVacancyData(account.Token.AccessToken)
+
+	resumes, err := r.provider.HH.ReturnResumes(account.Token.AccessToken)
+
 	if err != nil {
-		log.Printf("error while getting similar ids: %v", err)
+		log.Printf("error while return resumes: %v", err)
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	responses, err := resumesToResponses(resumes)
+	if err != nil {
+		log.Printf("error while resumes to responses: %v", err)
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
-		"ids":    ids,
+		"ids":    responses,
 	})
 }

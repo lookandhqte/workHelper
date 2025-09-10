@@ -39,34 +39,13 @@ func (r *Provider) GetToken(code string) (*entity.Token, error) {
 	data.Set("code", code)
 	data.Set("grant_type", "authorization_code")
 	data.Set("redirect_uri", r.app.RedirectURI)
-
-	req, err := http.NewRequest(http.MethodPost, "https://api.hh.ru/token", strings.NewReader(data.Encode()))
+	body, err := r.postRequest("https://api.hh.ru/token", data.Encode())
 	if err != nil {
 		fmt.Printf("err while rnew request func get token hh.go: %v\n", err)
 		return nil, err
 	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Content-Length", strconv.Itoa(len(data.Encode())))
-
-	resp, err := r.client.Do(req)
-	if err != nil {
-		fmt.Printf("err while do req func get tokens hh.go: %v\n", err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Printf("err while readall get token func %v\n", err)
-		return nil, err
-	}
-
 	responseData := &entity.Token{}
-	if err := json.Unmarshal(body, responseData); err != nil {
+	if err := json.Unmarshal(*body, responseData); err != nil {
 		fmt.Printf("err while unmarshal body: %v\n", err)
 		return nil, err
 	}
@@ -85,17 +64,93 @@ func (r *Provider) RefreshToken(refreshToken string) (*entity.Token, error) {
 	data.Set("grant_type", "refresh_token")
 	data.Set("refresh_token", refreshToken)
 
-	req, err := http.NewRequest(http.MethodPost, "https://api.hh.ru/token", strings.NewReader(data.Encode()))
+	body, err := r.postRequest("https://api.hh.ru/token", data.Encode())
+
+	responseData := &entity.Token{}
+	if err := json.Unmarshal(*body, responseData); err != nil {
+		fmt.Printf("err while unmarshal body: %v\n", err)
+		return nil, err
+	}
+
+	if responseData.AccessToken == "" && responseData.ExpiresIn == 0 && responseData.RefreshToken == "" {
+		fmt.Printf("null result response data: %v\n", err)
+		return nil, err
+	}
+
+	return responseData, nil
+}
+
+func (r *Provider) ReturnResumes(token string) (*[]ResumeDTO, error) {
+
+	userInfo, err := r.getUserInfo(token)
+	if err != nil {
+		fmt.Printf("err while rget user info: %v\n", err)
+		return nil, err
+	}
+
+	resumesURL := userInfo.ResumesURL
+
+	userResumes, err := r.getUserResumes(token, resumesURL)
+	if err != nil {
+		fmt.Printf("err while rget user info: %v\n", err)
+		return nil, err
+	}
+
+	resumes := make([]ResumeDTO, 0, userResumes.Found)
+
+	for _, resume := range userResumes.Items {
+		found, err := r.getResumeSimilarVacancies(token, resume.SimilarVacancies.URL, resume.SimilarVacancies.Counters.Total)
+		fmt.Printf("total: %v\n", resume.SimilarVacancies.Counters.Total)
+		fmt.Printf("found: %v\n", len(*found))
+		if err != nil {
+			fmt.Printf("err while get list similar func fill account: %v\n", err)
+			return nil, err
+		}
+		resumes = append(resumes, ResumeDTO{ID: resume.ID, SimilarVacancies: found})
+	}
+
+	return &resumes, nil
+}
+
+func (r *Provider) getRequest(token string, url string) (*[]byte, error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		fmt.Printf("err while rnew request func refresh token hh.go: %v\n", err)
 		return nil, err
 	}
+	req.Header.Add("User-Agent", "workHelper/1.0(roselifemeow@gmail.com)")
+	req.Header.Add("Authorization", "Bearer "+token)
+	resp, err := r.client.Do(req)
+	if err != nil {
+		fmt.Printf("err while get user info dto: %v\n", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("err while readall auth get user info func %v\n", err)
+		return nil, err
+	}
+	return &body, nil
+}
+
+func (r *Provider) postRequest(url string, data string) (*[]byte, error) {
+	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(data))
+	if err != nil {
+		fmt.Printf("err while rnew request func get token hh.go: %v\n", err)
+		return nil, err
+	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Content-Length", strconv.Itoa(len(data.Encode())))
+	req.Header.Set("Content-Length", strconv.Itoa(len(data)))
 
 	resp, err := r.client.Do(req)
 	if err != nil {
-		fmt.Printf("err while do req func refresh tokens hh.go: %v\n", err)
+		fmt.Printf("err while do req func get tokens hh.go: %v\n", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -109,232 +164,99 @@ func (r *Provider) RefreshToken(refreshToken string) (*entity.Token, error) {
 		fmt.Printf("err while readall get token func %v\n", err)
 		return nil, err
 	}
-
-	responseData := &entity.Token{}
-	if err := json.Unmarshal(body, responseData); err != nil {
-		fmt.Printf("err while unmarshal body: %v\n", err)
-		return nil, err
-	}
-
-	if responseData.AccessToken == "" && responseData.ExpiresIn == 0 && responseData.RefreshToken == "" {
-		fmt.Printf("null result response data: %v\n", err)
-		return nil, err
-	}
-
-	return responseData, nil
+	return &body, nil
 }
 
 // getUserInfo получает информацию о пользователе
-func (r *Provider) getUserInfo(token string) (string, error) {
-	req, err := http.NewRequest(http.MethodGet, "https://api.hh.ru/me", nil)
-	if err != nil {
-		fmt.Printf("err while rnew request func refresh token hh.go: %v\n", err)
-		return "", err
-	}
-	req.Header.Add("User-Agent", "workHelper/1.0(roselifemeow@gmail.com)")
-	req.Header.Add("Authorization", "Bearer "+token)
-	resp, err := r.client.Do(req)
-	if err != nil {
-		fmt.Printf("err while get user info dto: %v\n", err)
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
-	}
-	body, err := io.ReadAll(resp.Body)
+func (r *Provider) getUserInfo(token string) (*userInfoDTO, error) {
+	body, err := r.getRequest(token, "https://api.hh.ru/me")
 	if err != nil {
 		fmt.Printf("err while readall auth get user info func %v\n", err)
-		return "", err
+		return nil, err
 	}
-
 	responseData := &userInfoDTO{}
-	if err := json.Unmarshal(body, responseData); err != nil {
+	if err := json.Unmarshal(*body, responseData); err != nil {
 		fmt.Printf("err while unmarshal body: %v\n", err)
-		return "", err
+		return nil, err
 	}
-	fmt.Printf("response after unmarshal %v\n", responseData)
-	//fmt.Println(responseData.Email)
-	return responseData.ResumesURL, nil
+	return responseData, nil
 }
 
-// GetUserResumes получает информацию о пользователе
-func (r *Provider) getUserResumes(token string) (*[]string, error) {
-	baseURL, err := r.getUserInfo(token)
-	if err != nil {
-		fmt.Printf("err while get user info: %v\n", err)
-		return nil, err
-	}
-	req, err := http.NewRequest(http.MethodGet, baseURL, nil)
-	if err != nil {
-		fmt.Printf("err while rnew request func refresh token hh.go: %v\n", err)
-		return nil, err
-	}
-	req.Header.Add("User-Agent", "workHelper/1.0(roselifemeow@gmail.com)")
-	req.Header.Add("Authorization", "Bearer "+token)
-	resp, err := r.client.Do(req)
-	if err != nil {
-		fmt.Printf("err while get user info dto: %v\n", err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
-	}
-	body, err := io.ReadAll(resp.Body)
+// GetUserResumes получает резюме пользователя
+func (r *Provider) getUserResumes(token string, url string) (*userResumesDTO, error) {
+	body, err := r.getRequest(token, url)
 	if err != nil {
 		fmt.Printf("err while readall auth get user info func %v\n", err)
 		return nil, err
 	}
 
 	responseData := &userResumesDTO{}
-	if err := json.Unmarshal(body, responseData); err != nil {
+	if err := json.Unmarshal(*body, responseData); err != nil {
 		fmt.Printf("err while unmarshal body: %v\n", err)
 		return nil, err
 	}
-	fmt.Println("found resumes:")
-	fmt.Println(responseData.Found)
-	similarVacanciesURLs := make([]string, 0, responseData.Found)
-	for _, item := range responseData.Items {
-		similarVacanciesURLs = append(similarVacanciesURLs, item.SimilarVacancies.URL)
-	}
-	return &similarVacanciesURLs, nil
+
+	return responseData, nil
 }
 
-// getUserSimilarVacanciesIDs получает информацию о пользователе
-func (r *Provider) getUserSimilarVacanciesURLs(token string) (*[]string, error) {
-	baseURL, err := r.getUserResumes(token)
-	foundURLs := make([]string, 0, len(*baseURL))
-	if err != nil {
-		fmt.Printf("err while get user resumes: %v\n", err)
-		return nil, err
-	}
-	for _, url := range *baseURL {
-		req, err := http.NewRequest(http.MethodGet, url, nil)
-		if err != nil {
-			fmt.Printf("err while rnew request func refresh token hh.go: %v\n", err)
-			return nil, err
-		}
-		req.Header.Add("User-Agent", "workHelper/1.0(roselifemeow@gmail.com)")
-		req.Header.Add("Authorization", "Bearer "+token)
-		resp, err := r.client.Do(req)
-		if err != nil {
-			fmt.Printf("err while get user info dto: %v\n", err)
-			return nil, err
-		}
-		defer resp.Body.Close()
+// getUserSimilarVacancies возвращает id и url всех подходящих к резюме вакансий
+func (r *Provider) getResumeSimilarVacancies(token string, url string, amountOfVacancies int64) (*[]SimilarVacanciesDTO, error) {
+	similarVacancies := make([]SimilarVacanciesDTO, 0, amountOfVacancies)
+	var page int64 = 0
+	for {
+		paginatedURL := fmt.Sprintf("%s?page=%d&per_page=50", url, page)
 
-		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
-		}
-		body, err := io.ReadAll(resp.Body)
+		body, err := r.getRequest(token, paginatedURL)
 		if err != nil {
-			fmt.Printf("err while readall auth get user info func %v\n", err)
+			fmt.Printf("err while get request: %v\n", err)
 			return nil, err
 		}
-		responseData := &userSimilarVacancyDTO{}
-		if err := json.Unmarshal(body, responseData); err != nil {
+
+		responseData := &resumeSimilarVacanciesDTO{}
+		if err := json.Unmarshal(*body, responseData); err != nil {
 			fmt.Printf("err while unmarshal body: %v\n", err)
 			return nil, err
 		}
-		fmt.Println("found vacancies:")
-		fmt.Println(responseData.Found)
+
 		for _, item := range responseData.Items {
-			if !item.Archived && !item.HasTest {
-				foundURLs = append(foundURLs, item.URL)
+			if !item.Archived {
+				similarVacancies = append(similarVacancies, SimilarVacanciesDTO{ID: item.ID, URL: item.URL})
 			}
 		}
+
+		if len(similarVacancies) >= int(amountOfVacancies) ||
+			page >= responseData.Pages-1 ||
+			len(responseData.Items) == 0 {
+			break
+		}
+
+		page++
 	}
 
-	return &foundURLs, nil
+	return &similarVacancies, nil
 }
 
-// // getUserVacanciesIDs возвращает вакансии отобранные по своим алгоритмам
-// func (r *Provider) getUserVacanciesURLs(token string) (*[]string, error) {
-
-// 	data := &url.Values{}
-// 	data.Set("professional_roles", "96")
-
-// 		req, err := http.NewRequest(http.MethodGet, "https://api.hh.ru/vacancies", strings.NewReader(data.Encode()))
-// 		if err != nil {
-// 			fmt.Printf("err while rnew request func refresh token hh.go: %v\n", err)
-// 			return nil, err
-// 		}
-// 		req.Header.Add("User-Agent", "workHelper/1.0(roselifemeow@gmail.com)")
-// 		req.Header.Add("Authorization", "Bearer "+token)
-// 		resp, err := r.client.Do(req)
-// 		if err != nil {
-// 			fmt.Printf("err while get user info dto: %v\n", err)
-// 			return nil, err
-// 		}
-// 		defer resp.Body.Close()
-
-// 		if resp.StatusCode != http.StatusOK {
-// 			body, _ := io.ReadAll(resp.Body)
-// 			return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
-// 		}
-// 		body, err := io.ReadAll(resp.Body)
-// 		if err != nil {
-// 			fmt.Printf("err while readall auth get user info func %v\n", err)
-// 			return nil, err
-// 		}
-// 		responseData := &userSimilarVacancyDTO{}
-// 		if err := json.Unmarshal(body, responseData); err != nil {
-// 			fmt.Printf("err while unmarshal body: %v\n", err)
-// 			return nil, err
-// 		}
-// 		fmt.Println("found vacancies:")
-// 		fmt.Println(responseData.Found)
-
-// 	return nil, nil
-// }
-
-// getVacancyData возвращает описание вакансии по ID
-func (r *Provider) GetVacancyData(token string) (*[]vacancyDataDTO, error) {
-	vacancyURLs, err := r.getUserSimilarVacanciesURLs(token)
+// GetVacancyDescription возвращает описание вакансии
+func (r *Provider) GetVacancyDescription(token string, url string) (*userResumesDTO, error) {
+	body, err := r.getRequest(token, url)
 	if err != nil {
-		fmt.Printf("err while get user similar vacancies urls: %v\n", err)
+		fmt.Printf("err while readall auth get user info func %v\n", err)
 		return nil, err
 	}
 
-	vacanciesData := make([]vacancyDataDTO, 0, len(*vacancyURLs))
-
-	for _, url := range *vacancyURLs {
-		req, err := http.NewRequest(http.MethodGet, url, nil)
-		if err != nil {
-			fmt.Printf("err while rnew request func refresh token hh.go: %v\n", err)
-			return nil, err
-		}
-		req.Header.Add("User-Agent", "workHelper/1.0(roselifemeow@gmail.com)")
-		req.Header.Add("Authorization", "Bearer "+token)
-		resp, err := r.client.Do(req)
-		if err != nil {
-			fmt.Printf("err while get user info dto: %v\n", err)
-			return nil, err
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
-		}
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			fmt.Printf("err while readall auth get user info func %v\n", err)
-			return nil, err
-		}
-		responseData := &vacancyDataDTO{}
-		if err := json.Unmarshal(body, responseData); err != nil {
-			fmt.Printf("err while unmarshal body: %v\n", err)
-			return nil, err
-		}
-
-		vacanciesData = append(vacanciesData, *responseData)
+	responseData := &userResumesDTO{}
+	if err := json.Unmarshal(*body, responseData); err != nil {
+		fmt.Printf("err while unmarshal body: %v\n", err)
+		return nil, err
 	}
-	return &vacanciesData, nil
+
+	return responseData, nil
 }
+
+// GetVacancyDescription получает резюме пользователя
+func (r *Provider) GetVacancyKeySkills(token string, id string) (*userResumesDTO, error) {
+	return nil, nil
+}
+
+// GetVacancyDescription получает резюме пользователя
+func (r *Provider) GetVacancyByID(token string, id string) (*userResumesDTO, error) { return nil, nil }

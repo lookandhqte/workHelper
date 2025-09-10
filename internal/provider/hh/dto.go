@@ -15,10 +15,13 @@ type userResumesDTO struct {
 	Found int64        `json:"found"`
 }
 
-// userSimilarVacancyDTO структура вакансий для пользователя, возвращаемая запросом GET ${Item.SimilarVacancies.URL}
-type userSimilarVacancyDTO struct {
-	Items []similarVacancyItem `json:"items"`
-	Found int64                `json:"found"`
+// resumeSimilarVacanciesDTO структура вакансий для пользователя, возвращаемая запросом GET ${Item.SimilarVacancies.URL}
+type resumeSimilarVacanciesDTO struct {
+	Items   []similarVacancyItem `json:"items"`
+	Found   int64                `json:"found"`
+	Pages   int64                `json:"pages"`
+	Page    int64                `json:"page"`
+	PerPage int64                `json:"per_page"`
 }
 
 // vacancyDataDTO структура необходимой информации для составления сопровода и отклика на вакансию
@@ -61,6 +64,7 @@ type resumeItem struct {
 
 // similarVacancyItem структура описывающая экземпляр вакансии, получаемая запросом GET {$SimilarVacancies.URL}
 type similarVacancyItem struct {
+	ID       string `json:"id"`
 	HasTest  bool   `json:"has_test"`
 	Archived bool   `json:"archived"`
 	URL      string `json:"url"`
@@ -104,7 +108,12 @@ type userExperience struct {
 
 // similarVacancies вакансии, подходящие по резюме
 type similarVacancies struct {
-	URL string `json:"url"`
+	URL      string   `json:"url"`
+	Counters Counters `json:"counters"`
+}
+
+type Counters struct {
+	Total int64 `json:"total"`
 }
 
 // vacancyAddress фактический адрес вакансии
@@ -127,4 +136,15 @@ type vacancyEmployer struct {
 // vacancyKeySkill структура ключевых скиллов вакансии
 type vacancyKeySkill struct {
 	Name string `json:"name"`
+}
+
+// Resume структура резюме
+type ResumeDTO struct {
+	ID               string                 `json:"id"`
+	SimilarVacancies *[]SimilarVacanciesDTO `json:"similar_vacancies"`
+}
+
+type SimilarVacanciesDTO struct {
+	ID  string `json:"id"`
+	URL string `json:"url"`
 }
